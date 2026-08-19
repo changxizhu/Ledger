@@ -1,0 +1,7 @@
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+
+# Todoist and Google Calendar are app connectors. Configure and authenticate
+# them in Codex/ChatGPT settings instead of committing credentials here.
+

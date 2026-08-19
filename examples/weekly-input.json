@@ -2,7 +2,7 @@
   "week": "2026-W34",
   "period": {
     "start": "2026-08-17",
-    "end": "2026-08-23"
+    "end": "2026-08-24"
   },
   "target_focus_hours": 24,
   "actual_focus_hours": 20.5,
@@ -28,4 +28,3 @@
     }
   ]
 }
-
