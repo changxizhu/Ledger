@@ -24,9 +24,14 @@ progress_weight = 0.45
 focus_weight = 0.15
 evidence_weight = 0.10
 
+[integrations.linear]
+enabled = false
+team = "Ledger"
+
 [integrations.todoist]
 enabled = false
-project = "Weekly Plan"
+# Optional reminders only; do not duplicate the Linear weekly plan.
+project = "Personal Reminders"
 
 [integrations.google_calendar]
 enabled = false
@@ -36,4 +41,3 @@ calendar = "primary"
 enabled = false
 # Hooks and export adapters append normalized JSONL here.
 inbox = ".ledger/interactions.jsonl"
-

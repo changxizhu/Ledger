@@ -9,7 +9,7 @@ records, and exported model interactions, then produces weekly and monthly revie
 - **Skills decide:** classify evidence into themes, explain progress, and prepare plans.
 - **Scripts measure:** synchronize repositories, collect Git facts, calculate scores,
   and render reports.
-- **Todoist plans:** weekly tasks and long-term goals are the planning source of truth.
+- **Linear plans:** weekly cycles, work themes, and long-term goals are the planning source of truth.
 - **Calendar reserves time:** it contains review reminders and real time blocks, not a
   duplicate task list.
 - **Private by default:** raw notes, prompts, paths, and tokens stay local. A future
@@ -29,6 +29,9 @@ hooks/                         hook commands
 scripts/                       repeatable collection and scoring tools
 tests/                         deterministic checks
 ```
+
+See [the system architecture](docs/architecture.md) for the component map,
+weekly execution flow, ownership rules, and privacy boundaries.
 
 Generated private data belongs in `.ledger/` and is ignored by Git. Do not commit
 API tokens, raw conversations, note contents, or machine-specific configuration.
@@ -55,8 +58,9 @@ python3 -m unittest discover -s tests -v
    `theme_analyst`, and `review_auditor` subagents.
 5. Project conversations are captured privately in
    `.ledger/interactions.jsonl`. This file is ignored by Git.
-6. Connect Todoist and Google Calendar in the Codex/ChatGPT plugin settings.
-   These connectors are the MCP layer; credentials do not belong in Ledger.
+6. Connect Linear and Google Calendar in the Codex/ChatGPT plugin settings.
+   Todoist remains optional for simple personal reminders. These connectors are
+   the MCP layer; credentials do not belong in Ledger.
 
 The project hook only sees conversations opened inside Ledger. To collect Codex
 activity from other repositories, merge `config/codex-hooks.global.example.json`
@@ -75,7 +79,7 @@ python3 scripts/collect_git.py --config /path/to/ledger.toml \
 ## Implementation order
 
 1. Validate the local Git and Markdown pipeline with real repositories.
-2. Add Todoist task import and Calendar time import.
+2. Add Linear plan import/update and Calendar time import.
 3. Add explicit Codex and Claude export adapters; hooks may append metadata to a
    local inbox, but scripts remain the canonical readers.
 4. Publish only anonymized weekly aggregates to a separate GitHub Pages dashboard.
