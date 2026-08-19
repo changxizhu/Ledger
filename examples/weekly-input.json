@@ -1,0 +1,31 @@
+{
+  "week": "2026-W34",
+  "period": {
+    "start": "2026-08-17",
+    "end": "2026-08-23"
+  },
+  "target_focus_hours": 24,
+  "actual_focus_hours": 20.5,
+  "tasks": [
+    {"title": "Finish experiment summary", "weight": 3, "completed": true},
+    {"title": "Review two papers", "weight": 2, "completed": true},
+    {"title": "Prepare next experiment", "weight": 2, "completed": false}
+  ],
+  "themes": [
+    {
+      "name": "Research experiments",
+      "weight": 3,
+      "progress": 0.8,
+      "evidence_count": 7,
+      "summary": "Completed the main comparison and recorded the result."
+    },
+    {
+      "name": "Paper reading",
+      "weight": 2,
+      "progress": 0.65,
+      "evidence_count": 3,
+      "summary": "Extracted useful methods but did not finish the synthesis."
+    }
+  ]
+}
+

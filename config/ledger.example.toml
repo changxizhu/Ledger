@@ -1,0 +1,39 @@
+timezone = "Asia/Shanghai"
+private_data_dir = ".ledger"
+
+[identity]
+# Map commits from multiple GitHub accounts to one person.
+git_names = ["Your Name"]
+git_emails = ["personal@example.com", "work@example.com"]
+
+[[repositories]]
+name = "notes"
+path = "/absolute/path/to/MyNotes"
+kind = "notes"
+include = ["Plans", "Study", "Paper Reading"]
+
+[[repositories]]
+name = "research-code"
+path = "/absolute/path/to/repository"
+kind = "code"
+include = []
+
+[weekly_index]
+plan_weight = 0.30
+progress_weight = 0.45
+focus_weight = 0.15
+evidence_weight = 0.10
+
+[integrations.todoist]
+enabled = false
+project = "Weekly Plan"
+
+[integrations.google_calendar]
+enabled = false
+calendar = "primary"
+
+[integrations.interactions]
+enabled = false
+# Hooks and export adapters append normalized JSONL here.
+inbox = ".ledger/interactions.jsonl"
+

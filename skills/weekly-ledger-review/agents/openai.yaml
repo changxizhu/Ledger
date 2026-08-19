@@ -1,0 +1,5 @@
+interface:
+  display_name: "Weekly Ledger Review"
+  short_description: "Review weekly evidence, progress, and the next plan"
+  default_prompt: "Use $weekly-ledger-review to review this week's evidence and prepare the next plan."
+

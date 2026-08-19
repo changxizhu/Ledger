@@ -1,0 +1,5 @@
+interface:
+  display_name: "Monthly Ledger Review"
+  short_description: "Review monthly trends and long-term priorities"
+  default_prompt: "Use $monthly-ledger-review to review this month and update long-term priorities."
+
