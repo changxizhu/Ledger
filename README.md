@@ -30,8 +30,9 @@ scripts/                       repeatable collection and scoring tools
 tests/                         deterministic checks
 ```
 
-See [the system architecture](docs/architecture.md) for the component map,
-weekly execution flow, ownership rules, and privacy boundaries.
+Open [the standalone architecture viewer](architecture.html) for the readable,
+interactive system map. The editable Mermaid source remains in
+[docs/architecture.md](docs/architecture.md).
 
 Generated private data belongs in `.ledger/` and is ignored by Git. Do not commit
 API tokens, raw conversations, note contents, or machine-specific configuration.
