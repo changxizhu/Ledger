@@ -170,8 +170,15 @@ def run_configured_export(
 
 
 def _print_run_summary(result: dict[str, Any]) -> None:
-    action = "Would export" if result["dry_run"] else "Exported"
-    print(f"{action} {result['new_event_count']} new interaction events.")
+    if result["dry_run"]:
+        print(f"Would export {result['new_event_count']} new interaction events.")
+    else:
+        print(f"Exported {result['written_event_count']} new interaction events.")
+        if result["duplicate_event_count"]:
+            print(
+                f"Skipped {result['duplicate_event_count']} events already present "
+                "in the destination."
+            )
     for source in result["sources"]:
         print(
             f"  {source['provider']}: {source['status']} "

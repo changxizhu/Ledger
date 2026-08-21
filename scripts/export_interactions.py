@@ -4,19 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import json
 import os
 import re
 import tomllib
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
-
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - Windows fallback
-    fcntl = None
 
 try:
     from .time_utils import parse_timestamp
@@ -348,34 +345,79 @@ def _read_increment(
     return events, {"offset": offset, "context": context}, malformed, redactions
 
 
-def _append_events(output_root: Path, events: list[dict[str, Any]]) -> list[str]:
-    grouped: dict[Path, list[dict[str, Any]]] = {}
+def _existing_event_ids(directory: Path, event_date: str) -> set[str]:
+    event_ids: set[str] = set()
+    if not directory.is_dir():
+        return event_ids
+    for candidate in sorted(directory.glob(f"{event_date}*.jsonl")):
+        with candidate.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                event_id = record.get("event_id") if isinstance(record, dict) else None
+                if isinstance(event_id, str) and event_id:
+                    event_ids.add(event_id)
+    return event_ids
+
+
+def _set_private_mode_if_supported(path: Path) -> None:
+    try:
+        os.chmod(path, 0o600)
+    except OSError as error:
+        unsupported = {errno.EOPNOTSUPP, errno.ENOTSUP, errno.ENOSYS}
+        if error.errno not in unsupported:
+            raise
+
+
+def _write_event_batches(
+    output_root: Path, events: list[dict[str, Any]]
+) -> tuple[list[str], int, int]:
+    grouped: dict[tuple[Path, str], list[dict[str, Any]]] = {}
     for event in events:
         timestamp = parse_timestamp(event["captured_at"])
         if not timestamp:
             continue
-        path = (
-            output_root
-            / str(event["device_id"])
-            / str(event["source"])
-            / f"{timestamp.date().isoformat()}.jsonl"
+        directory = (
+            output_root / str(event["device_id"]) / str(event["source"])
         )
-        grouped.setdefault(path, []).append(event)
+        grouped.setdefault((directory, timestamp.date().isoformat()), []).append(event)
 
-    written = []
-    for path, records in sorted(grouped.items(), key=lambda item: str(item[0])):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as handle:
-            if fcntl is not None:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-            for record in records:
-                handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+    output_files = []
+    written_count = 0
+    duplicate_count = 0
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    run_id = f"{run_id}-{uuid.uuid4().hex[:8]}"
+    for (directory, event_date), records in sorted(
+        grouped.items(), key=lambda item: (str(item[0][0]), item[0][1])
+    ):
+        directory.mkdir(parents=True, exist_ok=True)
+        existing_ids = _existing_event_ids(directory, event_date)
+        pending = []
+        for record in records:
+            event_id = record.get("event_id")
+            if isinstance(event_id, str) and event_id in existing_ids:
+                duplicate_count += 1
+                continue
+            pending.append(record)
+            if isinstance(event_id, str) and event_id:
+                existing_ids.add(event_id)
+        if not pending:
+            continue
+
+        path = directory / f"{event_date}--{run_id}.jsonl"
+        with path.open("w", encoding="utf-8") as handle:
+            for record in pending:
+                serialized = json.dumps(
+                    record, ensure_ascii=False, separators=(",", ":")
+                )
+                handle.write(serialized + "\n")
             handle.flush()
-            if fcntl is not None:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        os.chmod(path, 0o600)
-        written.append(str(path))
-    return written
+        _set_private_mode_if_supported(path)
+        output_files.append(str(path))
+        written_count += len(pending)
+    return output_files, written_count, duplicate_count
 
 
 def export_interactions(
@@ -449,7 +491,14 @@ def export_interactions(
         )
 
     all_events.sort(key=lambda event: (event["captured_at"], event["event_id"]))
-    output_files = [] if dry_run else _append_events(output_dir, all_events)
+    if dry_run:
+        output_files = []
+        written_event_count = 0
+        duplicate_event_count = 0
+    else:
+        output_files, written_event_count, duplicate_event_count = _write_event_batches(
+            output_dir, all_events
+        )
     if not dry_run:
         _write_state(state_file, next_state)
 
@@ -461,6 +510,8 @@ def export_interactions(
         "content_included": include_content,
         "redaction_enabled": True,
         "new_event_count": len(all_events),
+        "written_event_count": written_event_count,
+        "duplicate_event_count": duplicate_event_count,
         "redacted_value_count": total_redactions,
         "malformed_record_count": total_malformed,
         "output_files": output_files,

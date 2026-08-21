@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ledger-exporter"
-version = "0.1.0"
+version = "0.1.1"
 description = "Lightweight scheduled Codex and Claude Code exporter for Ledger"
 requires-python = ">=3.11"
 dependencies = []

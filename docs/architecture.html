@@ -2384,7 +2384,7 @@ include_theme_names = false</code></pre>
         <section class="doc-section">
           <div class="doc-section-heading">
             <h3>副电脑的互动导出</h3>
-            <p>所有电脑写入同一个私有 Google Drive 逻辑目录，但各自使用本机挂载路径和不同 device_id。文件自动进入 <code>output_dir/device_id/provider/date.jsonl</code>，副电脑无需保存完整 Ledger 代码。</p>
+            <p>所有电脑写入同一个私有 Google Drive 逻辑目录，但各自使用本机挂载路径和不同 device_id。每次运行创建 <code>output_dir/device_id/provider/date--run-id.jsonl</code> immutable batch，避免要求 Google Drive、GVFS 等同步文件系统支持 append、locking 或 chmod；重试时会按 event_id 跳过已存在的记录。副电脑无需保存完整 Ledger 代码。</p>
           </div>
           <div class="doc-grid">
             <div class="doc-column">
@@ -2393,10 +2393,10 @@ include_theme_names = false</code></pre>
                 <div class="code-toolbar"><span>Install and setup</span><button class="copy-button" type="button">Copy</button></div>
                 <pre><code>gh auth login
 download_dir="$(mktemp -d)"
-gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
-  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+gh release download exporter-v0.1.1 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.1-py3-none-any.whl" \
   --dir "$download_dir"
-pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
+pipx install --force "$download_dir/ledger_exporter-0.1.1-py3-none-any.whl"
 ledger-export setup</code></pre>
               </div>
             </div>
@@ -2483,10 +2483,10 @@ python3 -m pip install -r requirements.txt</code></pre></div>
 python3 -m pipx ensurepath
 gh auth login
 download_dir="$(mktemp -d)"
-gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
-  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+gh release download exporter-v0.1.1 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.1-py3-none-any.whl" \
   --dir "$download_dir"
-pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
+pipx install --force "$download_dir/ledger_exporter-0.1.1-py3-none-any.whl"
 ledger-export setup
 ledger-export run
 ledger-export schedule install

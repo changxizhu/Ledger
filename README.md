@@ -41,10 +41,10 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 gh auth login
 download_dir="$(mktemp -d)"
-gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
-  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+gh release download exporter-v0.1.1 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.1-py3-none-any.whl" \
   --dir "$download_dir"
-pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
+pipx install --force "$download_dir/ledger_exporter-0.1.1-py3-none-any.whl"
 ledger-export setup
 ledger-export run
 ledger-export schedule install
@@ -122,10 +122,10 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 gh auth login
 download_dir="$(mktemp -d)"
-gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
-  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+gh release download exporter-v0.1.1 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.1-py3-none-any.whl" \
   --dir "$download_dir"
-pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
+pipx install --force "$download_dir/ledger_exporter-0.1.1-py3-none-any.whl"
 ```
 
 Configure the device, test access, export once, and install the daily task:
@@ -149,7 +149,7 @@ For local package development, install the current checkout instead:
 pipx install . --force
 ```
 
-Maintainers publish a release by pushing a matching tag, for example `exporter-v0.1.0`. The release
+Maintainers publish a release by pushing a matching tag, for example `exporter-v0.1.1`. The release
 workflow builds a wheel containing only the three exporter modules and attaches it to GitHub
 Releases.
 
@@ -224,7 +224,9 @@ python3 .agents/skills/weekly-ledger-review/scripts/refresh_connectors.py \
 
 The scheduled exporter reads native Codex and Claude transcripts incrementally, redacts common
 credential forms, and writes the shared `schemas/interaction-event.schema.json` format. It does not
-run continuously and does not require Linear, Calendar, or model credentials.
+run continuously and does not require Linear, Calendar, or model credentials. Each run writes
+immutable JSONL batches so Google Drive, GVFS, and similar synchronized filesystems do not need to
+support append, locking, or permission changes. Retries skip event IDs already present.
 
 ## Diagnostic commands
 

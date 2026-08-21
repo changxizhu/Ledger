@@ -1,8 +1,11 @@
+import errno
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.export_interactions import (
     export_interactions,
@@ -129,13 +132,18 @@ class InteractionExportTests(unittest.TestCase):
             second = export_interactions(**arguments)
 
             self.assertEqual(first["new_event_count"], 3)
+            self.assertEqual(first["written_event_count"], 3)
             self.assertEqual(first["redacted_value_count"], 1)
             self.assertEqual(second["new_event_count"], 0)
             self.assertTrue(state.exists())
 
-            codex_output = output / "macbook-a" / "codex" / "2026-08-20.jsonl"
-            claude_output = (
-                output / "macbook-a" / "claude_code" / "2026-08-20.jsonl"
+            codex_output = next(
+                (output / "macbook-a" / "codex").glob("2026-08-20--*.jsonl")
+            )
+            claude_output = next(
+                (output / "macbook-a" / "claude_code").glob(
+                    "2026-08-20--*.jsonl"
+                )
             )
             codex_records = [json.loads(line) for line in codex_output.read_text().splitlines()]
             claude_records = [
@@ -164,6 +172,7 @@ class InteractionExportTests(unittest.TestCase):
                 )
             third = export_interactions(**arguments)
             self.assertEqual(third["new_event_count"], 1)
+            self.assertEqual(third["written_event_count"], 1)
 
     def test_metadata_only_keeps_hash_and_count_without_content(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -192,15 +201,76 @@ class InteractionExportTests(unittest.TestCase):
                 include_content=False,
                 now=datetime(2026, 8, 20, tzinfo=timezone.utc),
             )
-            record = json.loads(
-                (output / "desktop-b" / "claude_code" / "2026-08-20.jsonl")
-                .read_text()
-                .strip()
+            output_file = next(
+                (output / "desktop-b" / "claude_code").glob(
+                    "2026-08-20--*.jsonl"
+                )
             )
+            record = json.loads(output_file.read_text().strip())
             self.assertEqual(result["new_event_count"], 1)
             self.assertEqual(record["character_count"], len("private text"))
             self.assertTrue(record["content_sha256"])
             self.assertNotIn("content", record)
+
+    def test_cloud_mount_chmod_failure_and_missing_state_retry_are_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            claude_root = root / "claude"
+            output = root / "drive"
+            state = root / "state.json"
+            claude_root.mkdir()
+            (claude_root / "session.jsonl").write_text(
+                json.dumps(
+                    {
+                        "type": "user",
+                        "timestamp": "2026-08-20T03:00:00Z",
+                        "uuid": "message-1",
+                        "message": {"role": "user", "content": "Follow up"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            arguments = {
+                "sources": {"claude_code": claude_root},
+                "output_dir": output,
+                "state_file": state,
+                "device_id": "booster-ubuntu",
+                "lookback_days": 3650,
+                "now": datetime(2026, 8, 20, tzinfo=timezone.utc),
+            }
+            real_chmod = os.chmod
+
+            def cloud_chmod(path: str | Path, mode: int) -> None:
+                if str(path).startswith(str(output)):
+                    raise OSError(errno.EOPNOTSUPP, "Operation not supported", str(path))
+                real_chmod(path, mode)
+
+            with patch("scripts.export_interactions.os.chmod", side_effect=cloud_chmod):
+                first = export_interactions(**arguments)
+
+            self.assertEqual(first["written_event_count"], 1)
+            self.assertTrue(state.exists())
+            first_output = Path(first["output_files"][0])
+            first_output.rename(first_output.with_name("2026-08-20.jsonl"))
+            state.unlink()
+
+            retry = export_interactions(**arguments)
+
+            self.assertEqual(retry["new_event_count"], 1)
+            self.assertEqual(retry["written_event_count"], 0)
+            self.assertEqual(retry["duplicate_event_count"], 1)
+            self.assertTrue(state.exists())
+            self.assertEqual(
+                len(
+                    list(
+                        (output / "booster-ubuntu" / "claude_code").glob(
+                            "2026-08-20*.jsonl"
+                        )
+                    )
+                ),
+                1,
+            )
 
     def test_redaction_handles_provider_tokens_and_bearer_values(self) -> None:
         text, count = redact_content(
