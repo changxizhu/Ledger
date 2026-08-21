@@ -372,7 +372,9 @@ def _set_private_mode_if_supported(path: Path) -> None:
 
 
 def _write_event_batches(
-    output_root: Path, events: list[dict[str, Any]]
+    output_root: Path,
+    events: list[dict[str, Any]],
+    progress: Callable[[str], None] | None = None,
 ) -> tuple[list[str], int, int]:
     grouped: dict[tuple[Path, str], list[dict[str, Any]]] = {}
     for event in events:
@@ -389,9 +391,13 @@ def _write_event_batches(
     duplicate_count = 0
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run_id = f"{run_id}-{uuid.uuid4().hex[:8]}"
-    for (directory, event_date), records in sorted(
+    batches = sorted(
         grouped.items(), key=lambda item: (str(item[0][0]), item[0][1])
-    ):
+    )
+    for batch_index, ((directory, event_date), records) in enumerate(batches, start=1):
+        label = f"{directory.name} {event_date}"
+        if progress:
+            progress(f"Checking destination {batch_index}/{len(batches)}: {label}...")
         directory.mkdir(parents=True, exist_ok=True)
         existing_ids = _existing_event_ids(directory, event_date)
         pending = []
@@ -404,19 +410,27 @@ def _write_event_batches(
             if isinstance(event_id, str) and event_id:
                 existing_ids.add(event_id)
         if not pending:
+            if progress:
+                progress(f"Already present: {label} ({len(records)} events).")
             continue
 
         path = directory / f"{event_date}--{run_id}.jsonl"
-        with path.open("w", encoding="utf-8") as handle:
-            for record in pending:
-                serialized = json.dumps(
-                    record, ensure_ascii=False, separators=(",", ":")
-                )
-                handle.write(serialized + "\n")
-            handle.flush()
+        payload = "".join(
+            json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
+            for record in pending
+        )
+        size_mib = len(payload.encode("utf-8")) / (1024 * 1024)
+        if progress:
+            progress(
+                f"Uploading {batch_index}/{len(batches)}: {label} "
+                f"({len(pending)} events, {size_mib:.1f} MiB)..."
+            )
+        path.write_text(payload, encoding="utf-8")
         _set_private_mode_if_supported(path)
         output_files.append(str(path))
         written_count += len(pending)
+        if progress:
+            progress(f"Uploaded: {path.name}")
     return output_files, written_count, duplicate_count
 
 
@@ -430,6 +444,7 @@ def export_interactions(
     include_content: bool = True,
     dry_run: bool = False,
     now: datetime | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     if lookback_days < 1:
         raise ValueError("lookback_days must be at least 1")
@@ -461,10 +476,16 @@ def export_interactions(
         if provider not in normalizers:
             raise ValueError(f"Unsupported interaction provider: {provider}")
         root = configured_path.expanduser().resolve()
+        if progress:
+            progress(f"Scanning {provider} transcripts...")
         files = _candidate_files(root, cutoff, known)
+        if progress:
+            progress(f"Reading {provider}: {len(files)} transcript files selected.")
         provider_events = 0
         provider_malformed = 0
-        for path in files:
+        for file_index, path in enumerate(files, start=1):
+            if progress:
+                progress(f"Reading {provider} file {file_index}/{len(files)}...")
             key = str(path.resolve())
             events, updated, malformed, redactions = _read_increment(
                 path,
@@ -489,6 +510,8 @@ def export_interactions(
                 "malformed_record_count": provider_malformed,
             }
         )
+        if progress:
+            progress(f"Prepared {provider}: {provider_events} new events.")
 
     all_events.sort(key=lambda event: (event["captured_at"], event["event_id"]))
     if dry_run:
@@ -496,11 +519,17 @@ def export_interactions(
         written_event_count = 0
         duplicate_event_count = 0
     else:
+        if progress:
+            progress(f"Preparing {len(all_events)} events for the destination...")
         output_files, written_event_count, duplicate_event_count = _write_event_batches(
-            output_dir, all_events
+            output_dir, all_events, progress
         )
     if not dry_run:
+        if progress:
+            progress("Saving the local incremental cursor...")
         _write_state(state_file, next_state)
+        if progress:
+            progress("Export complete.")
 
     return {
         "device_id": device_id,

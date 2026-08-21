@@ -13,7 +13,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 try:
     from .export_interactions import (
@@ -150,7 +150,11 @@ def _configured_sources(settings: dict[str, Any]) -> dict[str, Path]:
 
 
 def run_configured_export(
-    config_path: Path, *, dry_run: bool = False, metadata_only: bool = False
+    config_path: Path,
+    *,
+    dry_run: bool = False,
+    metadata_only: bool = False,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     settings = load_export_config(config_path)
     if not settings.get("device_id"):
@@ -166,6 +170,7 @@ def run_configured_export(
         lookback_days=int(settings["lookback_days"]),
         include_content=bool(settings["include_content"]) and not metadata_only,
         dry_run=dry_run,
+        progress=progress,
     )
 
 
@@ -250,8 +255,14 @@ def setup_command(args: argparse.Namespace) -> int:
 
 def run_command(args: argparse.Namespace) -> int:
     config_path = (args.config or default_config_path()).expanduser().resolve()
+    progress = None
+    if not args.json:
+        progress = lambda message: print(message, file=sys.stderr, flush=True)
     result = run_configured_export(
-        config_path, dry_run=args.dry_run, metadata_only=args.metadata_only
+        config_path,
+        dry_run=args.dry_run,
+        metadata_only=args.metadata_only,
+        progress=progress,
     )
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

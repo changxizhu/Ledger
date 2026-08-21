@@ -240,6 +240,7 @@ class InteractionExportTests(unittest.TestCase):
                 "now": datetime(2026, 8, 20, tzinfo=timezone.utc),
             }
             real_chmod = os.chmod
+            progress_messages: list[str] = []
 
             def cloud_chmod(path: str | Path, mode: int) -> None:
                 if str(path).startswith(str(output)):
@@ -247,10 +248,16 @@ class InteractionExportTests(unittest.TestCase):
                 real_chmod(path, mode)
 
             with patch("scripts.export_interactions.os.chmod", side_effect=cloud_chmod):
-                first = export_interactions(**arguments)
+                first = export_interactions(
+                    **arguments, progress=progress_messages.append
+                )
 
             self.assertEqual(first["written_event_count"], 1)
             self.assertTrue(state.exists())
+            self.assertTrue(
+                any(message.startswith("Uploading 1/1:") for message in progress_messages)
+            )
+            self.assertEqual(progress_messages[-1], "Export complete.")
             first_output = Path(first["output_files"][0])
             first_output.rename(first_output.with_name("2026-08-20.jsonl"))
             state.unlink()
