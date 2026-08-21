@@ -33,12 +33,18 @@ report generation. The final report is stored at
 `.ledger/runs/YYYY-Www/YYYY-MM-week-N.html`.
 
 On every secondary computer, install only the interaction exporter; cloning this repository is not
-required:
+required. Because Ledger is private, authenticate the GitHub CLI once and download the release
+asset through it:
 
 ```bash
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-pipx install "https://github.com/changxizhu/Ledger/releases/download/exporter-v0.1.0/ledger_exporter-0.1.0-py3-none-any.whl"
+gh auth login
+mkdir -p "$HOME/.cache/ledger-exporter"
+gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+  --dir "$HOME/.cache/ledger-exporter" --clobber
+pipx install --force "$HOME/.cache/ledger-exporter/ledger_exporter-0.1.0-py3-none-any.whl"
 ledger-export setup
 ledger-export run
 ledger-export schedule install
@@ -107,13 +113,19 @@ there through MCP.
 
 ## Secondary computer details
 
-Secondary computers do not need a Ledger checkout. Install the small wheel from the tagged GitHub
+Secondary computers need Python 3.11 or newer, `pipx`, Google Drive Desktop, and an authenticated
+GitHub CLI. They do not need a Ledger checkout. Download and install the small wheel from the private
 release:
 
 ```bash
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-pipx install "https://github.com/changxizhu/Ledger/releases/download/exporter-v0.1.0/ledger_exporter-0.1.0-py3-none-any.whl"
+gh auth login
+mkdir -p "$HOME/.cache/ledger-exporter"
+gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
+  --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
+  --dir "$HOME/.cache/ledger-exporter" --clobber
+pipx install --force "$HOME/.cache/ledger-exporter/ledger_exporter-0.1.0-py3-none-any.whl"
 ```
 
 Configure the device, test access, export once, and install the daily task:
@@ -128,7 +140,8 @@ ledger-export status
 `setup` detects the standard Codex, Claude Code, and Google Drive Desktop paths and creates a private
 device configuration under `~/.config/ledger-exporter/`. Each device receives a unique name and
 writes to its own Google Drive subdirectory. Use `ledger-export schedule remove` to remove the
-background task. A newer release can be installed with `pipx install --force NEW_WHEEL_URL`.
+background task. To upgrade, download the new wheel with `gh release download`, then repeat
+`pipx install --force` with its local path.
 
 For local package development, install the current checkout instead:
 
