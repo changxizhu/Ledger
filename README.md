@@ -40,11 +40,11 @@ asset through it:
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 gh auth login
-mkdir -p "$HOME/.cache/ledger-exporter"
+download_dir="$(mktemp -d)"
 gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
   --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
-  --dir "$HOME/.cache/ledger-exporter" --clobber
-pipx install --force "$HOME/.cache/ledger-exporter/ledger_exporter-0.1.0-py3-none-any.whl"
+  --dir "$download_dir"
+pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
 ledger-export setup
 ledger-export run
 ledger-export schedule install
@@ -121,11 +121,11 @@ release:
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 gh auth login
-mkdir -p "$HOME/.cache/ledger-exporter"
+download_dir="$(mktemp -d)"
 gh release download exporter-v0.1.0 --repo changxizhu/Ledger \
   --pattern "ledger_exporter-0.1.0-py3-none-any.whl" \
-  --dir "$HOME/.cache/ledger-exporter" --clobber
-pipx install --force "$HOME/.cache/ledger-exporter/ledger_exporter-0.1.0-py3-none-any.whl"
+  --dir "$download_dir"
+pipx install --force "$download_dir/ledger_exporter-0.1.0-py3-none-any.whl"
 ```
 
 Configure the device, test access, export once, and install the daily task:
