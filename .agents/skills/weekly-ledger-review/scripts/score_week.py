@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
 from typing import Any
 
 
@@ -41,7 +38,7 @@ def calculate_weekly_index(
     if abs(sum(selected.values()) - 1.0) > 1e-9:
         raise ValueError("Weekly index weights must sum to 1.0")
 
-    tasks = data.get("tasks", [])
+    tasks = [task for task in data.get("tasks", []) if not task.get("cancelled")]
     themes = data.get("themes", [])
     task_items = [
         {**task, "completion": 1.0 if task.get("completed") else 0.0}
@@ -75,24 +72,3 @@ def calculate_weekly_index(
         "weights": selected,
     }
     return result
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input", type=Path)
-    parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
-
-    data = json.loads(args.input.read_text(encoding="utf-8"))
-    result = calculate_weekly_index(data)
-    rendered = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(rendered, encoding="utf-8")
-    else:
-        print(rendered, end="")
-
-
-if __name__ == "__main__":
-    main()
-

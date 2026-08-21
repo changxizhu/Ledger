@@ -2,6 +2,12 @@
 enabled = true
 max_concurrent_threads_per_session = 3
 
+[apps._default]
+# Reads may proceed, but app writes require approval from the main session.
+default_tools_approval_mode = "writes"
+destructive_enabled = false
+open_world_enabled = false
+
 # Linear and Google Calendar are the primary app connectors. Todoist is optional
 # for simple personal reminders. Configure and authenticate connectors in
 # Codex/ChatGPT settings instead of committing credentials here.

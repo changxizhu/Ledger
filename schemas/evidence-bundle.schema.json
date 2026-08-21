@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledger.local/schemas/evidence-bundle.schema.json",
+  "title": "Ledger private evidence bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "week",
+    "period",
+    "timezone",
+    "collected_at",
+    "source_status",
+    "sync",
+    "git",
+    "interactions",
+    "connectors"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "profile_id": { "type": "string", "minLength": 1 },
+    "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
+    "period": { "$ref": "#/$defs/period" },
+    "timezone": { "type": "string", "minLength": 1 },
+    "collected_at": { "type": "string", "format": "date-time" },
+    "source_status": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/source_status" }
+    },
+    "sync": {
+      "type": "object",
+      "required": ["repositories"],
+      "properties": {
+        "repositories": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "required": [
+        "period",
+        "event_count",
+        "events",
+        "worktree_event_count",
+        "worktree_events"
+      ],
+      "properties": {
+        "period": { "$ref": "#/$defs/period" },
+        "event_count": { "type": "integer", "minimum": 0 },
+        "events": { "type": "array", "items": { "type": "object" } },
+        "worktree_event_count": { "type": "integer", "minimum": 0 },
+        "worktree_events": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "interactions": {
+      "type": "object",
+      "required": ["period", "event_count", "sources", "events"],
+      "properties": {
+        "period": { "$ref": "#/$defs/period" },
+        "event_count": { "type": "integer", "minimum": 0 },
+        "duplicate_count": { "type": "integer", "minimum": 0 },
+        "sources": { "type": "array", "items": { "type": "object" } },
+        "events": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "connectors": {
+      "type": "object",
+      "required": ["period", "statuses", "snapshots", "calendar_focus_hours"],
+      "properties": {
+        "period": { "$ref": "#/$defs/period" },
+        "statuses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source_status" }
+        },
+        "snapshots": { "type": "object" },
+        "calendar_focus_hours": {
+          "type": ["number", "null"],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "direct_refresh": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" }
+      }
+    },
+    "source_status": {
+      "type": "object",
+      "required": ["name", "category", "required", "status"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "status": {
+          "type": "string",
+          "enum": ["available", "disabled", "error", "stale", "unavailable"]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "source": "linear",
+  "profile_id": "owner",
+  "captured_at": "2026-08-23T18:00:00+08:00",
+  "period": {
+    "start": "2026-08-17",
+    "end": "2026-08-24"
+  },
+  "account": {
+    "id": "linear-user-id",
+    "name": "Owner",
+    "email": "owner@example.com"
+  },
+  "issues": [
+    {
+      "id": "LED-1",
+      "title": "Finish experiment summary",
+      "status": "Done",
+      "completed": true,
+      "weight": 3
+    }
+  ]
+}

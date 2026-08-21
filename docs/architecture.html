@@ -1,0 +1,2680 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Ledger Handbook</title>
+    <style>
+      :root {
+        --page: #f4f5f2;
+        --surface: #ffffff;
+        --ink: #1d2823;
+        --muted: #637069;
+        --line: #d9ded9;
+        --source-bg: #eaf2f8;
+        --source-border: #7995aa;
+        --access-bg: #edf4ec;
+        --access-border: #739079;
+        --ledger-bg: #fff5d9;
+        --ledger-border: #a28132;
+        --output-bg: #f5ece8;
+        --output-border: #a17868;
+        --future-bg: #f1f2f1;
+        --future-border: #929994;
+        --active: #236b50;
+        --focus: #205d82;
+        --radius: 6px;
+        --zoom: 0.9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        letter-spacing: 0;
+      }
+
+      button {
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+      }
+
+      .header-inner {
+        width: min(1480px, calc(100% - 32px));
+        min-height: 68px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.2;
+        font-weight: 720;
+      }
+
+      .brand p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .header-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--active);
+        box-shadow: 0 0 0 3px #dcece5;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 68px;
+        z-index: 19;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfa;
+      }
+
+      .toolbar-inner {
+        width: min(1480px, calc(100% - 32px));
+        min-height: 52px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .tabs {
+        display: inline-flex;
+        max-width: 100%;
+        overflow-x: auto;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #edf0ec;
+      }
+
+      .tab {
+        flex: 0 0 auto;
+        min-height: 34px;
+        padding: 6px 14px;
+        border: 0;
+        border-radius: 4px;
+        color: #4d5c54;
+        background: transparent;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .tab:hover {
+        color: var(--ink);
+      }
+
+      .tab[aria-selected="true"] {
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: 0 1px 2px rgba(24, 37, 30, 0.12);
+        font-weight: 650;
+      }
+
+      .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .zoom-controls[hidden] {
+        display: none;
+      }
+
+      .icon-button {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        color: var(--ink);
+        background: var(--surface);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .icon-button:hover {
+        border-color: #aab4ad;
+        background: #f7f9f6;
+      }
+      .icon-button:focus-visible,
+      .tab:focus-visible,
+      .component:focus-visible {
+        outline: 3px solid rgba(32, 93, 130, 0.28);
+        outline-offset: 2px;
+      }
+
+      .zoom-label {
+        width: 48px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      main {
+        width: min(1480px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 48px;
+      }
+
+      .view[hidden] {
+        display: none;
+      }
+
+      .view-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .view-heading h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
+      .view-heading p {
+        max-width: 720px;
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+      .legend-swatch.live {
+        background: #4b876b;
+      }
+      .legend-swatch.planned {
+        border: 1px dashed #7d8781;
+        background: #f3f4f3;
+      }
+      .legend-swatch.private {
+        background: #d4ae52;
+      }
+
+      .map-viewport {
+        overflow: auto;
+        padding: 4px 4px 18px;
+      }
+
+      .architecture-map {
+        width: 100%;
+        min-width: 1080px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 28px;
+        align-items: stretch;
+        zoom: var(--zoom);
+      }
+
+      .layer {
+        position: relative;
+        min-width: 0;
+        min-height: 580px;
+        padding: 18px;
+        border: 1px solid;
+        border-radius: var(--radius);
+      }
+
+      .layer:not(:last-child)::after {
+        content: "→";
+        position: absolute;
+        top: 50%;
+        right: -25px;
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        color: #6b7770;
+        background: var(--page);
+        font-size: 20px;
+        transform: translateY(-50%);
+      }
+
+      .layer-source {
+        background: #f6f9fb;
+        border-color: #bacbd7;
+      }
+      .layer-access {
+        background: #f6faf5;
+        border-color: #bed0c0;
+      }
+      .layer-ledger {
+        background: #fffaf0;
+        border-color: #dcc888;
+      }
+      .layer-output {
+        background: #fbf7f5;
+        border-color: #d9c5bd;
+      }
+
+      .layer-header {
+        min-height: 54px;
+        margin-bottom: 14px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid rgba(73, 85, 77, 0.14);
+      }
+
+      .layer-number {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .layer h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .layer-header p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .component-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .component {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        min-height: 68px;
+        padding: 12px 34px 12px 13px;
+        border: 1px solid;
+        border-radius: var(--radius);
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .component:hover {
+        box-shadow: 0 3px 10px rgba(28, 42, 34, 0.08);
+        transform: translateY(-1px);
+      }
+      .component-source {
+        background: var(--source-bg);
+        border-color: var(--source-border);
+      }
+      .component-access {
+        background: var(--access-bg);
+        border-color: var(--access-border);
+      }
+      .component-ledger {
+        background: var(--ledger-bg);
+        border-color: var(--ledger-border);
+      }
+      .component-output {
+        background: var(--output-bg);
+        border-color: var(--output-border);
+      }
+      .component-future {
+        background: var(--future-bg);
+        border: 1px dashed var(--future-border);
+      }
+
+      .component strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.25;
+      }
+      .component small {
+        display: block;
+        margin-top: 5px;
+        color: #536158;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .component::after {
+        content: "›";
+        position: absolute;
+        top: 50%;
+        right: 13px;
+        color: #65726b;
+        font-size: 19px;
+        transform: translateY(-50%);
+      }
+
+      .status {
+        position: absolute;
+        top: 9px;
+        right: 10px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4b876b;
+      }
+
+      .component::after + .status {
+        display: none;
+      }
+      .component[data-status="planned"] .status {
+        background: #a1a7a3;
+      }
+      .component[data-status="optional"] .status {
+        background: #c39738;
+      }
+
+      .detail-panel {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 24px;
+        padding: 18px 20px;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfa;
+      }
+
+      .detail-panel h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+      .detail-kicker {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .detail-panel p {
+        margin: 0;
+        color: #3f4d45;
+        font-size: 13px;
+      }
+
+      .timeline {
+        position: relative;
+        max-width: 980px;
+        margin: 8px auto 0;
+      }
+
+      .timeline::before {
+        content: "";
+        position: absolute;
+        top: 20px;
+        bottom: 20px;
+        left: 28px;
+        width: 2px;
+        background: #cad2cc;
+      }
+
+      .timeline-step {
+        position: relative;
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) 160px;
+        gap: 14px;
+        align-items: center;
+        min-height: 72px;
+      }
+
+      .step-number {
+        position: relative;
+        z-index: 1;
+        width: 32px;
+        height: 32px;
+        margin-left: 13px;
+        display: grid;
+        place-items: center;
+        border: 2px solid #83928a;
+        border-radius: 50%;
+        color: #425149;
+        background: var(--page);
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .step-body {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .step-body strong {
+        display: block;
+        font-size: 13px;
+      }
+      .step-body span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .step-owner {
+        justify-self: stretch;
+        padding: 5px 8px;
+        border: 1px solid #c8d0cb;
+        border-radius: 4px;
+        color: #4f5e56;
+        background: #f9faf8;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .timeline-step.approval .step-number {
+        border-color: #a67c22;
+        color: #6d4f13;
+        background: #fff6dc;
+      }
+      .timeline-step.approval .step-body {
+        border-bottom-color: #d5bb7e;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+      table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+      th,
+      td {
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: #47554d;
+        background: #f1f4f0;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      td {
+        font-size: 13px;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      td:first-child {
+        width: 20%;
+        font-weight: 650;
+      }
+      td:nth-child(2) {
+        width: 28%;
+        color: #3f4d45;
+      }
+      td:last-child {
+        color: var(--muted);
+      }
+
+      .privacy-band {
+        margin-top: 22px;
+        padding: 18px 20px;
+        border-left: 4px solid #b48624;
+        background: #fff7e2;
+      }
+
+      .privacy-band h3 {
+        margin: 0 0 7px;
+        font-size: 14px;
+      }
+      .privacy-band p {
+        margin: 0;
+        color: #5b4a27;
+        font-size: 13px;
+      }
+
+      code {
+        padding: 1px 4px;
+        border-radius: 3px;
+        color: #263d32;
+        background: #edf1ed;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+
+      pre {
+        margin: 0;
+        padding: 18px;
+        overflow: auto;
+        color: #e8eee9;
+        background: #202a25;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.65;
+        tab-size: 2;
+      }
+
+      pre code {
+        padding: 0;
+        color: inherit;
+        background: transparent;
+        font-size: inherit;
+        overflow-wrap: normal;
+      }
+
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 6px 0 28px;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .summary-item {
+        min-width: 0;
+        padding: 16px 18px;
+        border-right: 1px solid var(--line);
+      }
+
+      .summary-item:last-child {
+        border-right: 0;
+      }
+
+      .summary-item strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .summary-item span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .doc-section {
+        padding: 26px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .doc-section:first-of-type {
+        padding-top: 0;
+      }
+
+      .doc-section:last-child {
+        border-bottom: 0;
+      }
+
+      .doc-section-heading {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+        gap: 30px;
+        margin-bottom: 18px;
+      }
+
+      .doc-section-heading h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .doc-section-heading p {
+        max-width: 780px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .doc-column {
+        min-width: 0;
+        padding-top: 12px;
+        border-top: 2px solid #aab6ae;
+      }
+
+      .doc-column h4 {
+        margin: 0 0 9px;
+        font-size: 13px;
+      }
+
+      .doc-column p {
+        margin: 0 0 10px;
+        color: #46534c;
+        font-size: 13px;
+      }
+
+      .doc-list {
+        margin: 0;
+        padding-left: 19px;
+        color: #46534c;
+        font-size: 13px;
+      }
+
+      .doc-list li + li {
+        margin-top: 7px;
+      }
+
+      .definition-list {
+        margin: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .definition-row {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.28fr) minmax(0, 1fr);
+        gap: 22px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .definition-row dt {
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .definition-row dd {
+        margin: 0;
+        color: #46534c;
+        font-size: 13px;
+      }
+
+      .code-block {
+        overflow: hidden;
+        border: 1px solid #3a4941;
+        border-radius: var(--radius);
+        background: #202a25;
+      }
+
+      .code-toolbar {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 10px 7px 14px;
+        border-bottom: 1px solid #3a4941;
+        color: #cbd5ce;
+        background: #28342e;
+        font-size: 11px;
+      }
+
+      .copy-button {
+        min-height: 26px;
+        padding: 3px 9px;
+        border: 1px solid #56675e;
+        border-radius: 4px;
+        color: #e8eee9;
+        background: #34423b;
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .copy-button:hover {
+        background: #405149;
+      }
+
+      .copy-button:focus-visible {
+        outline: 3px solid rgba(126, 188, 159, 0.32);
+        outline-offset: 2px;
+      }
+
+      .command-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .command-block h4 {
+        margin: 0 0 7px;
+        font-size: 12px;
+      }
+
+      .command-block p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tree-block {
+        padding: 18px 20px;
+        border-left: 3px solid #718d7b;
+        background: #f7f9f6;
+      }
+
+      .tree-block pre {
+        padding: 0;
+        color: #324139;
+        background: transparent;
+      }
+
+      .notice {
+        padding: 15px 18px;
+        border-left: 4px solid #61836f;
+        background: #eef5f0;
+        color: #385044;
+        font-size: 13px;
+      }
+
+      .notice.warning {
+        border-left-color: #b48624;
+        color: #5b4a27;
+        background: #fff7e2;
+      }
+
+      .notice strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .formula {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .formula-part {
+        padding: 16px;
+        border-right: 1px solid var(--line);
+      }
+
+      .formula-part:last-child {
+        border-right: 0;
+      }
+
+      .formula-part strong {
+        display: block;
+        color: #245f49;
+        font-size: 19px;
+      }
+
+      .formula-part span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .section-title {
+        margin: 28px 0 10px;
+        font-size: 15px;
+      }
+      .section-title:first-of-type {
+        margin-top: 0;
+      }
+      .implementation-table {
+        min-width: 1080px;
+      }
+      .implementation-table td:first-child {
+        width: 15%;
+      }
+      .implementation-table td:nth-child(2) {
+        width: 27%;
+        color: #30463a;
+      }
+      .implementation-table td:nth-child(3) {
+        width: 34%;
+        color: #3f4d45;
+      }
+      .implementation-table td:last-child {
+        width: 24%;
+      }
+
+      .state-label {
+        display: inline-block;
+        margin-top: 5px;
+        padding: 2px 6px;
+        border: 1px solid #b8c8bd;
+        border-radius: 3px;
+        color: #315b46;
+        background: #edf5ef;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .state-label.manual {
+        color: #6b531a;
+        border-color: #d2bd83;
+        background: #fff7df;
+      }
+      .state-label.future {
+        color: #5f6762;
+        border-style: dashed;
+        background: #f3f4f3;
+      }
+
+      footer {
+        width: min(1480px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 20px 0 30px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      @media (max-width: 840px) {
+        .header-inner {
+          min-height: 76px;
+          align-items: flex-start;
+          padding: 15px 0;
+        }
+        .header-meta {
+          display: none;
+        }
+        .toolbar-inner {
+          align-items: stretch;
+          flex-direction: column;
+          padding: 10px 0;
+        }
+        .tabs {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          width: 100%;
+        }
+        .tab {
+          padding-inline: 8px;
+        }
+        .zoom-controls {
+          justify-content: flex-end;
+        }
+        main {
+          padding-top: 18px;
+        }
+        .view-heading {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .legend {
+          justify-content: flex-start;
+        }
+        .architecture-map {
+          min-width: 0;
+          grid-template-columns: 1fr;
+          gap: 32px;
+          zoom: 1;
+        }
+        .layer {
+          min-height: 0;
+        }
+        .layer:not(:last-child)::after {
+          content: "↓";
+          top: auto;
+          right: 50%;
+          bottom: -28px;
+          transform: translateX(50%);
+        }
+        .detail-panel {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .timeline-step {
+          grid-template-columns: 54px minmax(0, 1fr);
+          padding-bottom: 8px;
+        }
+        .step-owner {
+          grid-column: 2;
+          justify-self: start;
+          margin: -7px 0 8px 14px;
+        }
+        .timeline::before {
+          left: 26px;
+        }
+        .step-number {
+          margin-left: 11px;
+        }
+        .summary-strip,
+        .formula {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .summary-item:nth-child(2),
+        .formula-part:nth-child(2) {
+          border-right: 0;
+        }
+        .summary-item:nth-child(-n + 2),
+        .formula-part:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+        .doc-section-heading {
+          grid-template-columns: 1fr;
+          gap: 7px;
+        }
+        .doc-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .header-inner,
+        .toolbar-inner,
+        main,
+        footer {
+          width: min(100% - 20px, 1480px);
+        }
+        .brand h1 {
+          font-size: 17px;
+        }
+        .brand p {
+          max-width: 290px;
+        }
+        .tab {
+          padding-inline: 5px;
+          font-size: 12px;
+        }
+        .zoom-controls {
+          display: none;
+        }
+        .component {
+          min-height: 62px;
+        }
+        .view-heading h2 {
+          font-size: 16px;
+        }
+        .tabs {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .definition-row {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+        .summary-strip,
+        .formula {
+          grid-template-columns: 1fr;
+        }
+        .summary-item,
+        .summary-item:nth-child(2),
+        .formula-part,
+        .formula-part:nth-child(2) {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .summary-item:last-child,
+        .formula-part:last-child {
+          border-bottom: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+        }
+        .component:hover {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand">
+          <h1>Ledger Handbook</h1>
+          <p>架构、实现、配置、权限与运行手册</p>
+        </div>
+        <div class="header-meta">
+          <span class="status-dot" aria-hidden="true"></span> Current implementation ·
+          2026-08-21
+        </div>
+      </div>
+    </header>
+
+    <nav class="toolbar" aria-label="Ledger 文档视图">
+      <div class="toolbar-inner">
+        <div class="tabs" role="tablist" aria-label="切换视图">
+          <button
+            class="tab"
+            id="tab-system"
+            role="tab"
+            aria-controls="view-system"
+            aria-selected="true"
+          >
+            系统地图
+          </button>
+          <button
+            class="tab"
+            id="tab-weekly"
+            role="tab"
+            aria-controls="view-weekly"
+            aria-selected="false"
+          >
+            每周流程
+          </button>
+          <button
+            class="tab"
+            id="tab-implementation"
+            role="tab"
+            aria-controls="view-implementation"
+            aria-selected="false"
+          >
+            模块实现
+          </button>
+          <button
+            class="tab"
+            id="tab-ownership"
+            role="tab"
+            aria-controls="view-ownership"
+            aria-selected="false"
+          >
+            身份与权限
+          </button>
+          <button
+            class="tab"
+            id="tab-configuration"
+            role="tab"
+            aria-controls="view-configuration"
+            aria-selected="false"
+          >
+            配置
+          </button>
+          <button
+            class="tab"
+            id="tab-operations"
+            role="tab"
+            aria-controls="view-operations"
+            aria-selected="false"
+          >
+            运行手册
+          </button>
+        </div>
+        <div class="zoom-controls" aria-label="缩放系统地图">
+          <button
+            class="icon-button"
+            id="zoom-out"
+            type="button"
+            title="缩小"
+            aria-label="缩小"
+          >
+            −
+          </button>
+          <span class="zoom-label" id="zoom-label">90%</span>
+          <button
+            class="icon-button"
+            id="zoom-in"
+            type="button"
+            title="放大"
+            aria-label="放大"
+          >
+            +
+          </button>
+          <button
+            class="icon-button"
+            id="zoom-reset"
+            type="button"
+            title="重置缩放"
+            aria-label="重置缩放"
+          >
+            ↺
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section
+        class="view"
+        id="view-system"
+        role="tabpanel"
+        aria-labelledby="tab-system"
+      >
+        <div class="view-heading">
+          <div>
+            <h2>从事实来源到复盘输出</h2>
+            <p>
+              点击任意组件查看职责。箭头表示数据方向；外部写入必须经过用户确认。
+            </p>
+          </div>
+          <div class="legend" aria-label="状态图例">
+            <span class="legend-item"
+              ><span class="legend-swatch live"></span>已实现</span
+            >
+            <span class="legend-item"
+              ><span class="legend-swatch planned"></span>规划中</span
+            >
+            <span class="legend-item"
+              ><span class="legend-swatch private"></span>私有边界</span
+            >
+          </div>
+        </div>
+
+        <div class="summary-strip" aria-label="系统摘要">
+          <div class="summary-item">
+            <strong>Linear</strong><span>计划与进度的权威来源</span>
+          </div>
+          <div class="summary-item">
+            <strong>Google Calendar</strong><span>会议与专注时间的事实来源</span>
+          </div>
+          <div class="summary-item">
+            <strong>Git + interactions</strong><span>笔记、代码与协作证据</span>
+          </div>
+          <div class="summary-item">
+            <strong>Private by default</strong><span>原始数据只进入私有 Ledger 边界</span>
+          </div>
+        </div>
+
+        <div class="map-viewport">
+          <div class="architecture-map" id="architecture-map">
+            <section class="layer layer-source" aria-labelledby="source-title">
+              <div class="layer-header">
+                <span class="layer-number">Layer 01</span>
+                <h3 id="source-title">事实来源</h3>
+                <p>每类信息只保留一个权威来源</p>
+              </div>
+              <div class="component-list">
+                <button
+                  class="component component-source"
+                  data-title="Linear"
+                  data-kicker="计划唯一来源"
+                  data-detail="Initiatives 表示长期目标，Projects 表示工作主题，Issues 表示任务，1 周 Cycle 表示每周承诺。Ledger 读取完成状态并在确认后回写下一周期。"
+                >
+                  <span class="status"></span><strong>Linear</strong
+                  ><small>长期目标 · 工作主题 · 周计划</small>
+                </button>
+                <button
+                  class="component component-source"
+                  data-title="Google Calendar"
+                  data-kicker="时间事实来源"
+                  data-detail="记录复盘提醒、真实会议和专注时间块。Calendar 不复制任务清单，只回答时间何时被预留或实际使用。"
+                >
+                  <span class="status"></span><strong>Google Calendar</strong
+                  ><small>复盘提醒 · 专注时间 · 会议</small>
+                </button>
+                <button
+                  class="component component-source"
+                  data-title="Git repositories"
+                  data-kicker="产出证据"
+                  data-detail="MyNotes 的 Markdown 变更和代码仓库提交通过本地 Git 历史读取。多账号通过姓名和邮箱别名归一到同一身份。"
+                >
+                  <span class="status"></span><strong>Git repositories</strong
+                  ><small>MyNotes 更新 · 代码提交与 diff</small>
+                </button>
+                <button
+                  class="component component-source"
+                  data-title="Model interactions"
+                  data-kicker="思考与协作证据"
+                  data-detail="每台电脑每日增量读取本地 Codex 和 Claude transcript，脱敏后写入按设备隔离的私有同步目录。交互次数不是直接生产力分数。"
+                >
+                  <span class="status"></span><strong>Model interactions</strong
+                  ><small>Codex · Claude · scheduled export</small>
+                </button>
+                <button
+                  class="component component-future"
+                  data-title="Todoist"
+                  data-kicker="可选提醒层"
+                  data-detail="仅用于简单个人提醒，不承载 Ledger 的周计划，不与 Linear 重复同步，也不参与核心工作指数。"
+                  data-status="optional"
+                >
+                  <span class="status"></span><strong>Todoist</strong
+                  ><small>可选个人提醒，不是计划主库</small>
+                </button>
+              </div>
+            </section>
+
+            <section class="layer layer-access" aria-labelledby="access-title">
+              <div class="layer-header">
+                <span class="layer-number">Layer 02</span>
+                <h3 id="access-title">访问与采集</h3>
+                <p>连接外部服务并标准化本地证据</p>
+              </div>
+              <div class="component-list">
+                <button
+                  class="component component-access"
+                  data-title="MCP connectors"
+                  data-kicker="实时授权工具"
+                  data-detail="Linear 和 Calendar 通过已授权连接器读取或执行操作。凭据留在连接器授权层，不写入 Ledger 仓库。"
+                >
+                  <span class="status"></span><strong>MCP connectors</strong
+                  ><small>Linear · Calendar · optional Todoist</small>
+                </button>
+                <button
+                  class="component component-access"
+                  data-title="Direct read adapters"
+                  data-kicker="无人值守读取"
+                  data-detail="项目级 scripts/credentials.py 只解析 env: 或 macOS keychain: 引用；weekly skill 的 scripts/refresh_connectors.py 核验 expected_user 后读取 Linear/Calendar，并只保存最小化私有快照。"
+                >
+                  <span class="status"></span
+                  ><strong>Direct read adapters</strong
+                  ><small>Account check · Read-only snapshots</small>
+                </button>
+                <button
+                  class="component component-access"
+                  data-title="Python scripts"
+                  data-kicker="确定性本地采集"
+                  data-detail="项目级 scripts/ 保存身份、Git、互动和同步等共享能力；每个 skill 自己的 scripts/ 保存周运行、周评分和月度汇总等专用逻辑。"
+                >
+                  <span class="status"></span><strong>Python scripts</strong
+                  ><small>Project shared · Skill bundled</small>
+                </button>
+                <button
+                  class="component component-access"
+                  data-title="Scheduled exporters"
+                  data-kicker="每日增量采集"
+                  data-detail="副电脑只安装 ledger-exporter，不需要完整 Ledger 仓库。ledger-export 使用本机私有配置和游标读取 Codex 与 Claude 新增 transcript，过滤敏感字段，再由 Google Drive Desktop 同步到主电脑。"
+                >
+                  <span class="status"></span><strong>Scheduled exporters</strong
+                  ><small
+                    >ledger-export · Google Drive</small
+                  >
+                </button>
+              </div>
+            </section>
+
+            <section class="layer layer-ledger" aria-labelledby="ledger-title">
+              <div class="layer-header">
+                <span class="layer-number">Layer 03</span>
+                <h3 id="ledger-title">Ledger 私有处理层</h3>
+                <p>解释交给 skills/agents，计算交给 scripts</p>
+              </div>
+              <div class="component-list">
+                <button
+                  class="component component-ledger"
+                  data-title="Coordinator skills"
+                  data-kicker="工作流协调"
+                  data-detail=".agents/skills/weekly-ledger-review/SKILL.md 与 monthly-ledger-review/SKILL.md 定义主会话的读取顺序、审查标准、输出格式和外部写入确认。"
+                >
+                  <span class="status"></span><strong>Coordinator skills</strong
+                  ><small>.agents/skills/*/SKILL.md</small>
+                </button>
+                <button
+                  class="component component-ledger"
+                  data-title="Read-only subagents"
+                  data-kicker="隔离分析"
+                  data-detail=".codex/agents 下三个 TOML 定义 Evidence collector、Theme analyst 和 Review auditor。它们使用只读 sandbox，禁用 apps/MCP，不负责外部写入。"
+                >
+                  <span class="status"></span
+                  ><strong>Read-only subagents</strong
+                  ><small>.codex/agents/*.toml</small>
+                </button>
+                <button
+                  class="component component-ledger"
+                  data-title="Deterministic processing"
+                  data-kicker="可复算指标"
+                  data-detail="工作指数由计划完成、结果进度、专注时间和证据覆盖确定性计算。代码量、消息数和超额工时不会直接增加分数。"
+                >
+                  <span class="status"></span
+                  ><strong>Deterministic processing</strong
+                  ><small>Weekly index · Report builder</small>
+                </button>
+                <button
+                  class="component component-ledger"
+                  data-title="Private local store"
+                  data-kicker="原始证据边界"
+                  data-detail="私有 Google Drive 保存按设备和日期分开的互动导出；.ledger/inbox 保存连接器快照，.ledger/runs 保存每次周运行，.ledger/months 保存月度汇总。"
+                >
+                  <span class="status"></span
+                  ><strong>Private local store</strong
+                  ><small>.ledger/inbox · runs · months</small>
+                </button>
+                <button
+                  class="component component-ledger"
+                  data-title="Privacy filter"
+                  data-kicker="公开前强制处理"
+                  data-detail="移除路径、提示词、任务标题、笔记正文和仓库名称，仅保留匿名主题、指数分项和计数。"
+                >
+                  <span class="status"></span><strong>Privacy filter</strong
+                  ><small>Aggregate · Anonymize · Validate</small>
+                </button>
+              </div>
+            </section>
+
+            <section class="layer layer-output" aria-labelledby="output-title">
+              <div class="layer-header">
+                <span class="layer-number">Layer 04</span>
+                <h3 id="output-title">输出与行动</h3>
+                <p>私有报告与公开摘要严格分离</p>
+              </div>
+              <div class="component-list">
+                <button
+                  class="component component-output"
+                  data-title="Private reports"
+                  data-kicker="主要复盘产物"
+                  data-detail="每周报告解释本周主题、进度、指数分项、做得好与需改善；月度报告评估长期目标和跨周趋势。"
+                >
+                  <span class="status"></span><strong>Private reports</strong
+                  ><small>Weekly review · Monthly review</small>
+                </button>
+                <button
+                  class="component component-output"
+                  data-title="Approved updates"
+                  data-kicker="需要确认的写入"
+                  data-detail="weekly skill 的 scripts/build_proposals.py 预览 Linear 下周任务和一个周一 Calendar 复盘提醒。只有用户确认后，主协调器才通过 MCP 执行写入。"
+                >
+                  <span class="status"></span><strong>Approved updates</strong
+                  ><small>Linear next plan · Monday reminder</small>
+                </button>
+                <button
+                  class="component component-output"
+                  data-title="Sanitized summary"
+                  data-kicker="公开数据合同"
+                  data-detail="public-week.json 只包含匿名主题、指数分项、任务计数和趋势，不包含路径、提示词、任务标题或笔记正文。"
+                >
+                  <span class="status"></span
+                  ><strong>Sanitized summary JSON</strong
+                  ><small>匿名指标 · 无原始内容</small>
+                </button>
+                <button
+                  class="component component-future"
+                  data-title="GitHub Pages dashboard"
+                  data-kicker="未来扩展"
+                  data-detail="独立公开仓库读取 sanitized summary JSON。它不能访问 Ledger 私有目录、MyNotes 或原始交互。"
+                  data-status="planned"
+                >
+                  <span class="status"></span
+                  ><strong>GitHub Pages dashboard</strong
+                  ><small>公开匿名趋势（未来）</small>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="detail-panel" id="detail-panel" aria-live="polite">
+          <div>
+            <h3 id="detail-title">选择一个组件</h3>
+            <p class="detail-kicker" id="detail-kicker">Component details</p>
+          </div>
+          <p id="detail-copy">
+            点击上方任意模块，查看它在 Ledger 中的职责、边界和当前实现状态。
+          </p>
+        </aside>
+      </section>
+
+      <section
+        class="view"
+        id="view-weekly"
+        role="tabpanel"
+        aria-labelledby="tab-weekly"
+        hidden
+      >
+        <div class="view-heading">
+          <div>
+            <h2>一次完整的每周复盘</h2>
+            <p>
+              周一到周一的证据窗口；任何 Linear 或 Calendar
+              写入都发生在人工确认之后。
+            </p>
+          </div>
+        </div>
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="step-number">01</div>
+            <div class="step-body">
+              <strong>加载身份与范围</strong
+              ><span
+                ><code>ledger.toml</code> 定义统一身份、时区、仓库和 MyNotes
+                白名单；<code>validate_config.py</code> 先校验。</span
+              >
+            </div>
+            <div class="step-owner">Coordinator skill</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">02</div>
+            <div class="step-body">
+              <strong>检查和安全同步</strong
+              ><span
+                ><code>sync_repositories.py</code> fetch 后报告状态；只有干净且
+                behind 的 checkout 可用
+                <code>--apply</code> fast-forward。</span
+              >
+            </div>
+            <div class="step-owner">Sync scripts</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">03</div>
+            <div class="step-body">
+              <strong>保存外部快照</strong
+              ><span
+                >MCP 模式由主协调器读取；direct 模式由
+                <code>refresh_connectors.py</code>
+                核验账号后读取。两者把相同格式的周快照写到
+                <code>.ledger/inbox/</code>。</span
+              >
+            </div>
+            <div class="step-owner">Main or direct reader</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">04</div>
+            <div class="step-body">
+              <strong>建立周运行</strong
+              ><span
+                ><code>run_weekly.py collect --fetch</code>
+                汇总所有来源，生成机器证据 <code>evidence.json</code>、人工表格
+                <code>evidence-review.md</code>（含可折叠 Git patch）与 draft。</span
+              >
+            </div>
+            <div class="step-owner">Weekly runner</div>
+          </div>
+          <div class="timeline-step approval">
+            <div class="step-number">05</div>
+            <div class="step-body">
+              <strong>用户核验 Evidence</strong
+              ><span
+                >Codex 在对话框展示来源、commit、工作区、互动、Linear 和
+                Calendar 表格；用户确认或排除错误证据。</span
+              >
+            </div>
+            <div class="step-owner">Evidence gate</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">06</div>
+            <div class="step-body">
+              <strong>核对事实并归纳主题</strong
+              ><span
+                >用户确认后，Evidence collector 核对事实；Theme analyst
+                再形成主题、结果进度、reflection 与下周建议。</span
+              >
+            </div>
+            <div class="step-owner">Read-only agents</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">07</div>
+            <div class="step-body">
+              <strong>写入标准输入并定稿</strong
+              ><span
+                >主协调器生成 <code>weekly-input.json</code>；finalize 强制核对
+                profile、week、period 和原始 source status。</span
+              >
+            </div>
+            <div class="step-owner">Main + runner</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">08</div>
+            <div class="step-body">
+              <strong>评分与生成输出</strong
+              ><span
+                >生成
+                <code>weekly-scored.json</code
+                >、<code>YYYY-MM-week-N.html</code>、<code>proposals.json</code>
+                和匿名 <code>public-week.json</code>。</span
+              >
+            </div>
+            <div class="step-owner">Output scripts</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">09</div>
+            <div class="step-body">
+              <strong>审计</strong
+              ><span
+                >Review auditor
+                复算异常值，检查证据支持、缺失数据、提案和公开数据隐私。</span
+              >
+            </div>
+            <div class="step-owner">Audit agent</div>
+          </div>
+          <div class="timeline-step approval">
+            <div class="step-number">10</div>
+            <div class="step-body">
+              <strong>展示与人工确认</strong
+              ><span
+                >用户查看私有周报和外部变更提案，批准、修改或拒绝 Linear 与
+                Calendar 操作。</span
+              >
+            </div>
+            <div class="step-owner">Approval gate</div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">11</div>
+            <div class="step-body">
+              <strong>受控回写与月度汇总</strong
+              ><span
+                >主协调器只执行获批写入；<code>aggregate_month.py</code>
+                后续把每周最新 scored record 汇总到
+                <code>.ledger/months/</code>。</span
+              >
+            </div>
+            <div class="step-owner">Main + monthly</div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-implementation"
+        role="tabpanel"
+        aria-labelledby="tab-implementation"
+        hidden
+      >
+        <div class="view-heading">
+          <div>
+            <h2>模块、文件与当前实现</h2>
+            <p>
+              这里列出真正参与运行的文件。绿色表示脚本已经实现；黄色表示由 Codex
+              主会话完成；灰色表示未来扩展。
+            </p>
+          </div>
+        </div>
+
+        <h3 class="section-title">模块定位</h3>
+        <div class="table-wrap">
+          <table class="implementation-table">
+            <thead>
+              <tr>
+                <th>模块</th>
+                <th>文件位置</th>
+                <th>当前实现</th>
+                <th>输入 → 输出 / 状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>私有配置与身份</td>
+                <td>
+                  <code>ledger.toml</code><br /><code
+                    >scripts/ledger_common.py</code
+                  ><br /><code
+                    >scripts/credentials.py</code
+                  >
+                </td>
+                <td>
+                  一个
+                  <code>person_id</code>
+                  关联多个账号；每个人使用独立配置和私有目录。校验 auth
+                  mode，只允许 <code>env:</code> /
+                  <code>keychain:</code> 凭据引用。
+                </td>
+                <td>
+                  本机设置 → validated profile<br /><span class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>仓库同步</td>
+                <td><code>scripts/sync_repositories.py</code></td>
+                <td>
+                  fetch 后识别 synced、ahead、behind、dirty、diverged。只有有
+                  upstream、与远端一致且工作区干净才是 ready；只允许干净且
+                  behind 的仓库 fast-forward。
+                </td>
+                <td>
+                  Git refs → 状态 / 可选 fast-forward<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>Git 证据</td>
+                <td><code>scripts/collect_git.py</code></td>
+                <td>
+                  按配置时区、身份别名和路径白名单读取提交、文件统计、受限 patch
+                  和未提交工作区。
+                </td>
+                <td>
+                  Repositories → commit/worktree events<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>Evidence 核验表</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/build_evidence_report.py</code
+                  >
+                </td>
+                <td>
+                  把来源状态、commit、工作区、互动、Linear tasks 和 Calendar
+                  events 转成 Markdown 表格，并加入私有的可折叠 Git patch；互动正文仍只保存在
+                  <code>evidence.json</code>。
+                </td>
+                <td>
+                  <code>evidence.json</code> → <code>evidence-review.md</code
+                  ><br /><span class="state-label">已实现</span>
+                </td>
+              </tr>
+              <tr>
+                <td>定时互动导出</td>
+                <td>
+                  <code>scripts/export_interactions.py</code><br /><code>scripts/ledger_export_cli.py</code><br /><code
+                    >schemas/interaction-event.schema.json</code
+                  >
+                </td>
+                <td>
+                  可作为独立 <code>ledger-exporter</code> 安装；引导完成设备配置、即时导出、状态检查和系统定时任务。每日按本机游标读取 Codex/Claude transcript，脱敏后按设备、来源和日期写入私有同步目录。
+                </td>
+                <td>
+                  Native transcripts → synchronized JSONL<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>互动标准化与路径检查</td>
+                <td>
+                  <code>scripts/collect_interactions.py</code>
+                </td>
+                <td>
+                  读取统一 Ledger JSONL 并按事件 ID 去重；同一脚本的 inspect
+                  子命令可在不打印正文的情况下检查本机路径、文件数、契约错误、最早/最新时间和指定周覆盖。
+                </td>
+                <td>
+                  Private JSONL → weekly events / coverage<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>Linear / Calendar 读取</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/refresh_connectors.py</code
+                  ><br /><code>collect_connectors.py</code><br /><code
+                    >examples/*-snapshot.json</code
+                  >
+                </td>
+                <td>
+                  Direct reader 核验服务账号并生成快照；统一 collector
+                  再验证来源、profile、周区间和采集时间。密钥不会进入快照。
+                </td>
+                <td>
+                  External APIs / MCP → private snapshots → evidence<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>MCP 读取与回写</td>
+                <td>
+                  <code>.codex/config.toml</code><br /><code
+                    >.agents/skills/weekly-ledger-review/SKILL.md</code
+                  >
+                </td>
+                <td>
+                  当前 Codex 主会话调用已授权的 Linear/Calendar
+                  connectors，保存快照；展示提案后，只执行用户批准的写入。
+                </td>
+                <td>
+                  MCP response ↔ external services<br /><span
+                    class="state-label manual"
+                    >主会话执行</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>主协调流程</td>
+                <td>
+                  <code>.agents/skills/weekly-ledger-review/SKILL.md</code
+                  ><br /><code
+                    >.agents/skills/weekly-ledger-review/scripts/run_weekly.py</code
+                  >
+                </td>
+                <td>
+                  Skill 定义顺序和审批边界；runner 创建 timestamped
+                  run，汇总证据，验证定稿来源一致性，并调用输出脚本。
+                </td>
+                <td>
+                  Config + sources → complete weekly run<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>只读子代理</td>
+                <td>
+                  <code>.codex/agents/evidence-collector.toml</code><br /><code
+                    >.codex/agents/theme-analyst.toml</code
+                  ><br /><code>.codex/agents/review-auditor.toml</code>
+                </td>
+                <td>
+                  分别核对事实、归纳主题、审计结果。主题必须保存可解析到本次 run 的
+                  evidence_refs。三个角色均为 read-only，禁用 apps 和 MCP；能力由 Codex runtime 提供。
+                </td>
+                <td>
+                  Selected run files → structured analysis<br /><span
+                    class="state-label manual"
+                    >主会话调用</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>周指数</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/score_week.py</code
+                  >
+                </td>
+                <td>
+                  计算计划 30%、主题进度 45%、专注时间 15%、证据覆盖
+                  10%。取消任务被排除，工时超标被封顶。
+                </td>
+                <td>
+                  <code>weekly-input.json</code> →
+                  <code>weekly-scored.json</code><br /><span class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>私有周报</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/build_html_report.py</code
+                  >
+                </td>
+                <td>
+                  展示指数分项、主题、每条主题证据的准确定位、来源覆盖、完成项、延期项，以及
+                  Issue/Evidence/Why/Suggestion 反思。
+                </td>
+                <td>
+                  Scored record → <code>YYYY-MM-week-N.html</code><br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>变更提案</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/build_proposals.py</code
+                  >
+                </td>
+                <td>
+                  合并下周计划与未完成任务，去重并排除取消项；只准备一个周一
+                  Calendar review reminder，不直接写外部服务。
+                </td>
+                <td>
+                  Scored record → <code>proposals.json</code><br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>月度汇总</td>
+                <td>
+                  <code>.agents/skills/monthly-ledger-review/SKILL.md</code
+                  ><br /><code
+                    >.agents/skills/monthly-ledger-review/scripts/aggregate_month.py</code
+                  >
+                </td>
+                <td>
+                  同一周只取最新定稿，计算月均分项、主题趋势与重复延期，供长期目标复盘。
+                </td>
+                <td>
+                  Weekly scored files → <code>.ledger/months/YYYY-MM.json</code
+                  ><br /><span class="state-label">已实现</span>
+                </td>
+              </tr>
+              <tr>
+                <td>公开匿名数据</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/sanitize_export.py</code
+                  >
+                </td>
+                <td>
+                  移除任务标题、路径、正文和私有主题名；默认输出 Theme 1、Theme
+                  2 等通用标签。
+                </td>
+                <td>
+                  Private scored record → <code>public-week.json</code
+                  ><br /><span class="state-label">已实现</span>
+                </td>
+              </tr>
+              <tr>
+                <td>合同与测试</td>
+                <td>
+                  <code>schemas/*.schema.json</code><br /><code
+                    >scripts/schema_validation.py</code
+                  ><br /><code>examples/*.json</code><br /><code
+                    >tests/test_*.py</code
+                  >
+                </td>
+                <td>
+                  JSON Schema 是 evidence 和 reviewed input 的共享数据合同；
+                  collect 和 finalize 在运行时强制验证，Python
+                  另外检查跨文件关系。
+                </td>
+                <td>
+                  JSON records → contract validation<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>公开 Dashboard</td>
+                <td>独立 GitHub Pages 仓库（尚未创建）</td>
+                <td>
+                  未来只读取审查后的 <code>public-week.json</code>。本 HTML
+                  是架构查看器，不读取私有数据，也不是实时 Dashboard。
+                </td>
+                <td>
+                  Sanitized JSON → public trends<br /><span
+                    class="state-label future"
+                    >未来扩展</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="section-title">数据生命周期</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>阶段</th>
+                <th>读取</th>
+                <th>保存 / 分析 / 展示</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>持续记录</td>
+                <td>Codex 与 Claude 本机 transcript</td>
+                <td>
+                  每台电脑每日增量导出到私有 Google Drive；主电脑只读取同步后的标准
+                  JSONL。
+                </td>
+              </tr>
+              <tr>
+                <td>外部快照</td>
+                <td>MCP 主协调器，或 direct reader + 外部凭据引用</td>
+                <td>
+                  先核验账号，再保存为 <code>.ledger/inbox/linear.json</code> 和
+                  <code>google-calendar.json</code>；凭据不进入文件。
+                </td>
+              </tr>
+              <tr>
+                <td>周采集</td>
+                <td>
+                  Git refs、允许路径的 commit/diff、互动 JSONL、connector
+                  snapshots
+                </td>
+                <td>
+                  <code>run_weekly.py collect</code> 保存
+                  <code>run.json</code>、<code>evidence.json</code>、<code
+                    >evidence-review.md</code
+                  >
+                  和 draft。
+                </td>
+              </tr>
+              <tr>
+                <td>人工核验</td>
+                <td><code>evidence-review.md</code> 中的各类证据表</td>
+                <td>
+                  Codex
+                  在对话框展示统计表和可折叠 Git patch，用户确认来源范围、排除错误证据；确认前不进行主题分析。
+                </td>
+              </tr>
+              <tr>
+                <td>分析</td>
+                <td>用户确认的 evidence、任务快照和分析结果</td>
+                <td>
+                  三个子代理只读分析；主协调器把主题、进度、反思、下周计划，以及每个主题的
+                  <code>evidence_refs</code> 保存到 <code>weekly-input.json</code>。
+                </td>
+              </tr>
+              <tr>
+                <td>定稿</td>
+                <td>原始 evidence 与 reviewed input</td>
+                <td>
+                  核对 profile/week/period/source status，并确认所有 evidence_refs
+                  都能解析到原始 evidence 后，生成 scored JSON、独立 HTML 周报、外部提案和匿名公开 JSON。
+                </td>
+              </tr>
+              <tr>
+                <td>月度汇总</td>
+                <td>每周最新的 <code>weekly-scored.json</code></td>
+                <td>
+                  保存月度 JSON；月度 skill 用它分析趋势、长期目标和重复延期。
+                </td>
+              </tr>
+              <tr>
+                <td>展示</td>
+                <td>私有周报、月度 JSON、匿名 public JSON</td>
+                <td>
+                  当前主要看 <code>YYYY-MM-week-N.html</code>；本页只展示架构；未来
+                  Dashboard 只能消费 anonymous public JSON。
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="section-title">私有数据布局</h3>
+        <div class="doc-grid">
+          <div class="tree-block">
+            <pre><code>Google Drive/Ledger/Interactions/
+└── DEVICE/
+    ├── codex/YYYY-MM-DD.jsonl
+    └── claude_code/YYYY-MM-DD.jsonl
+
+~/.local/state/ledger/
+└── interaction-export.json</code></pre>
+          </div>
+          <div class="tree-block">
+            <pre><code>.ledger/
+├── inbox/
+│   ├── linear.json
+│   └── google-calendar.json
+├── runs/YYYY-Www/
+│   ├── YYYY-MM-week-N.html
+│   └── TIMESTAMP/
+│       ├── run.json
+│       ├── evidence.json
+│       ├── evidence-review.md
+│       ├── weekly-input.draft.json
+│       ├── weekly-input.json
+│       ├── weekly-scored.json
+│       ├── proposals.json
+│       └── public-week.json
+└── months/YYYY-MM.json</code></pre>
+          </div>
+        </div>
+        <div class="notice" style="margin-top: 14px">
+          <strong>为什么一周会有多个目录</strong>
+          每次 collect 都在周目录下建立不可覆盖的 timestamped run，用于区分首次采集、补齐来源、重新分析和最终定稿。<code>run.json</code>
+          是该次运行的文件索引，旧 run 默认保留用于审计；周目录根部只保留当前定稿的 HTML 周报。
+        </div>
+
+        <h3 class="section-title">周指数</h3>
+        <div class="formula" aria-label="周指数权重">
+          <div class="formula-part"><strong>30%</strong><span>加权计划完成率</span></div>
+          <div class="formula-part"><strong>45%</strong><span>加权主题进度</span></div>
+          <div class="formula-part"><strong>15%</strong><span>专注时间达成率，上限 100%</span></div>
+          <div class="formula-part"><strong>10%</strong><span>有证据支持的主题比例</span></div>
+        </div>
+        <div class="notice warning" style="margin-top: 14px">
+          <strong>不直接计分</strong>
+          提交数、代码行数、模型消息数和超额工时只作为分析证据。取消任务不降低计划得分，也不进入延期或下周任务。
+        </div>
+
+        <div class="privacy-band">
+          <h3>运行边界</h3>
+          <p>
+            Python 已实现本地同步、采集、direct
+            只读刷新、账号核验、评分和文件输出。MCP
+            读取、用户确认和所有外部回写由 Codex 主会话完成。Subagents 不能访问
+            connectors、凭据或修改文件。
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-ownership"
+        role="tabpanel"
+        aria-labelledby="tab-ownership"
+        hidden
+      >
+        <div class="view-heading">
+          <div>
+            <h2>身份、账号与权限边界</h2>
+            <p>一个私有 profile 关联同一人的多个账号，但每个外部服务仍独立授权。</p>
+          </div>
+        </div>
+
+        <div class="summary-strip" aria-label="权限摘要">
+          <div class="summary-item"><strong>One person</strong><span>稳定的 person_id</span></div>
+          <div class="summary-item"><strong>Many aliases</strong><span>Git 姓名、邮箱与服务 ID</span></div>
+          <div class="summary-item"><strong>Separate auth</strong><span>每个服务独立授权与核验</span></div>
+          <div class="summary-item"><strong>Approval gate</strong><span>外部写入只由主协调器执行</span></div>
+        </div>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>配置边界</h3>
+            <p><code>ledger.toml</code> 保存身份断言、路径、白名单和非秘密引用；它不是登录系统，也不授予任何外部权限。</p>
+          </div>
+          <div class="doc-grid">
+            <div class="doc-column">
+              <h4>可以进入 Ledger</h4>
+              <ul class="doc-list">
+                <li>稳定的 <code>identity.person_id</code></li>
+                <li>不同电脑或账号使用的 Git 姓名与邮箱别名</li>
+                <li>非秘密的 Linear user ID 与 Calendar ID</li>
+                <li>仓库路径白名单、快照路径和 expected account</li>
+                <li><code>env:</code> 或 <code>keychain:</code> 凭据引用</li>
+              </ul>
+            </div>
+            <div class="doc-column">
+              <h4>不能进入 Ledger</h4>
+              <ul class="doc-list">
+                <li>OAuth access token 或 refresh token 的原始值</li>
+                <li>API key、密码、cookie 或 session 文件</li>
+                <li>从 Linear、Google、GitHub、Codex 或 Claude 复制的凭据</li>
+                <li>公开仓库中的原始对话、笔记正文或机器路径</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>连接模式</h3>
+            <p>MCP 适合交互式运行；direct 适合无人值守读取。两者生成同一种周快照，后续脚本和子代理不接触服务凭据。</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>模式</th><th>凭据位置</th><th>账号核验</th><th>允许的行为</th></tr></thead>
+              <tbody>
+                <tr><td>MCP</td><td>Codex connector store</td><td>建议配置 <code>expected_user</code>，快照包含 account</td><td>主协调器读取；用户批准后可写入</td></tr>
+                <tr><td>Direct</td><td>环境变量或 macOS Keychain</td><td><code>expected_user</code> 必填，不匹配则停止</td><td>只读 API，并保存最小化私有快照</td></tr>
+                <tr><td>Git</td><td>系统 credential manager 或 SSH agent</td><td>通过 author aliases 归一身份</td><td>fetch；只可安全 fast-forward，不自动 push</td></tr>
+                <tr><td>Interactions</td><td>本机 transcript + 私有 Google Drive</td><td>每台设备使用唯一 device_id</td><td>脱敏增量导出；不上传原始配置目录</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <h3 class="section-title">数据所有权</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>内容</th>
+                <th>唯一所有者</th>
+                <th>Ledger 行为</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>每周任务</td>
+                <td>Linear Cycle + Issues</td>
+                <td>读取完成情况；确认后生成下一周期。</td>
+              </tr>
+              <tr>
+                <td>工作主题</td>
+                <td>Linear Projects</td>
+                <td>关联证据并总结项目进度。</td>
+              </tr>
+              <tr>
+                <td>长期目标</td>
+                <td>Linear Initiatives / Projects</td>
+                <td>每月评估方向、风险和下阶段里程碑。</td>
+              </tr>
+              <tr>
+                <td>真实时间</td>
+                <td>Google Calendar</td>
+                <td>
+                  读取专注时间；提案生成一个周一复盘提醒，确认后由主协调器写入。
+                </td>
+              </tr>
+              <tr>
+                <td>笔记产出</td>
+                <td>MyNotes Git history</td>
+                <td>只读取配置允许的路径和 diff。</td>
+              </tr>
+              <tr>
+                <td>代码产出</td>
+                <td>Local Git history</td>
+                <td>按身份别名汇总提交和变更证据。</td>
+              </tr>
+              <tr>
+                <td>模型互动</td>
+                <td>Scheduled per-device exports</td>
+                <td>导出前脱敏；同步目录保持私有。</td>
+              </tr>
+              <tr>
+                <td>工作指数</td>
+                <td>Ledger scripts</td>
+                <td>从人工确认的标准化输入确定性计算。</td>
+              </tr>
+              <tr>
+                <td>公开 Dashboard</td>
+                <td>Sanitized aggregates</td>
+                <td>不能接触路径、提示词、任务标题或笔记正文。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 class="section-title">运行权限</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>组件</th><th>读取</th><th>写入</th></tr></thead>
+            <tbody>
+              <tr><td>Main coordinator</td><td>配置来源和私有 run 文件</td><td>私有 runs；经批准的外部变更</td></tr>
+              <tr><td>MCP connector</td><td>已授权的 Linear / Calendar 账号</td><td>只由主协调器执行获批操作</td></tr>
+              <tr><td>Direct reader</td><td>外部凭据引用与只读 API</td><td>核验过的私有快照</td></tr>
+              <tr><td>Evidence collector</td><td>单个 run 的 evidence；禁用 apps/MCP</td><td>无</td></tr>
+              <tr><td>Theme analyst</td><td>标准化 evidence；禁用 apps/MCP</td><td>无</td></tr>
+              <tr><td>Review auditor</td><td>run artifacts；禁用 apps/MCP</td><td>无</td></tr>
+              <tr><td>Scheduled exporter</td><td>本机 Codex / Claude transcript</td><td>私有同步目录</td></tr>
+              <tr><td>Dashboard exporter</td><td>最终 scored record</td><td>匿名 aggregate</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section class="doc-section" style="margin-top: 26px">
+          <div class="doc-section-heading">
+            <h3>一个人一个 profile</h3>
+            <p>新电脑沿用同一个 <code>person_id</code>，但保存自己的 ignored <code>ledger.toml</code>、仓库路径和设备导出路径。共享电脑应为每个人使用不同配置与 <code>private_data_dir</code>。</p>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar"><span>Direct-mode connector example</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>[integrations.linear]
+enabled = true
+auth_mode = "direct"
+team = "Ledger"
+snapshot = ".ledger/inbox/linear.json"
+expected_user = "owner@example.com"
+credential_ref = "keychain:ledger-linear/owner"
+
+[integrations.google_calendar]
+enabled = true
+auth_mode = "direct"
+calendar = "primary"
+snapshot = ".ledger/inbox/google-calendar.json"
+expected_user = "owner@example.com"
+client_id_ref = "env:LEDGER_GOOGLE_CLIENT_ID"
+client_credential_ref = "env:LEDGER_GOOGLE_CLIENT_CREDENTIAL"
+refresh_credential_ref = "keychain:ledger-google-refresh/owner"
+focus_title_prefixes = ["Focus:", "Deep Work"]</code></pre>
+          </div>
+        </section>
+
+        <div class="privacy-band">
+          <h3>核心隐私规则</h3>
+          <p>
+            原始证据止于 <code>.ledger/</code>。MCP 凭据止于 Codex；direct
+            凭据止于环境变量或 macOS Keychain。Subagents
+            只读。公开导出必须是独立、显式且经过验证的动作。
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-configuration"
+        role="tabpanel"
+        aria-labelledby="tab-configuration"
+        hidden
+      >
+        <div class="view-heading">
+          <div>
+            <h2>私有配置</h2>
+            <p>主电脑保存完整且 ignored 的 <code>ledger.toml</code>。副电脑只安装 <code>ledger-exporter</code>，私有配置默认保存在 <code>~/.config/ledger-exporter/config.toml</code>，不需要克隆完整仓库。</p>
+          </div>
+        </div>
+
+        <div class="summary-strip" aria-label="配置原则">
+          <div class="summary-item"><strong>Machine-local</strong><span>路径可以因电脑而不同</span></div>
+          <div class="summary-item"><strong>One identity</strong><span>同一人沿用相同 person_id</span></div>
+          <div class="summary-item"><strong>No raw secrets</strong><span>只保存外部凭据引用</span></div>
+          <div class="summary-item"><strong>Git ignored</strong><span>ledger.toml 不进入仓库</span></div>
+        </div>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>完整配置</h3>
+            <p>下面是主电脑的结构。替换身份、仓库、Google Drive、Linear 和 Calendar 示例值；路径白名单决定 Ledger 可以读取哪些内容。</p>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar"><span>ledger.toml</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>timezone = "Asia/Shanghai"
+private_data_dir = ".ledger"
+
+[identity]
+person_id = "owner"
+display_name = "Your Name"
+git_names = ["Your Name"]
+git_emails = ["personal@example.com", "work@example.com"]
+linear_user_ids = []
+google_calendar_ids = ["primary"]
+
+[[repositories]]
+name = "notes"
+path = "/absolute/path/to/MyNotes"
+kind = "notes"
+include = ["Plans", "Study", "Paper Reading"]
+required = true
+require_synced = true
+collect_worktree = true
+include_diff_content = true
+max_patch_chars = 12000
+
+[[repositories]]
+name = "research-code"
+path = "/absolute/path/to/repository"
+kind = "code"
+include = []
+required = false
+require_synced = true
+collect_worktree = true
+include_diff_content = true
+max_patch_chars = 12000
+
+[[interaction_sources]]
+name = "scheduled-exports"
+kind = "ledger_jsonl"
+path = "/absolute/path/to/Google Drive/Ledger/Interactions/**/*.jsonl"
+required = false
+include_content = true
+
+[interaction_export]
+device_id = "macbook-a"
+output_dir = "/absolute/path/to/Google Drive/Ledger/Interactions"
+state_file = "~/.local/state/ledger/interaction-export.json"
+providers = ["codex", "claude_code"]
+lookback_days = 8
+include_content = true
+
+[weekly_index]
+plan_weight = 0.30
+progress_weight = 0.45
+focus_weight = 0.15
+evidence_weight = 0.10
+
+[integrations.linear]
+enabled = false
+auth_mode = "mcp"
+team = "Ledger"
+snapshot = ".ledger/inbox/linear.json"
+# expected_user = "your-linear-email@example.com"
+# credential_ref = "keychain:ledger-linear/your-profile"
+
+[integrations.todoist]
+enabled = false
+project = "Personal Reminders"
+
+[integrations.google_calendar]
+enabled = false
+auth_mode = "mcp"
+calendar = "primary"
+snapshot = ".ledger/inbox/google-calendar.json"
+focus_title_prefixes = []
+# expected_user = "your-google-email@example.com"
+# client_id_ref = "env:LEDGER_GOOGLE_CLIENT_ID"
+# client_credential_ref = "env:LEDGER_GOOGLE_CLIENT_CREDENTIAL"
+# refresh_credential_ref = "keychain:ledger-google-refresh/your-profile"
+
+[integrations.interactions]
+enabled = true
+
+[public_export]
+include_theme_names = false</code></pre>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>字段职责</h3>
+            <p>采集端与主电脑可以共用同一种配置格式，但只做导出的设备不需要仓库、外部连接器或评分设置。</p>
+          </div>
+          <dl class="definition-list">
+            <div class="definition-row"><dt><code>[identity]</code></dt><dd>把不同 Git 作者别名和服务 ID 归一为一个人；不是认证信息。</dd></div>
+            <div class="definition-row"><dt><code>[[repositories]]</code></dt><dd>声明本机仓库、允许路径、是否读取工作区，以及远端同步要求。</dd></div>
+            <div class="definition-row"><dt><code>[[interaction_sources]]</code></dt><dd>主电脑读取 Google Drive 中的标准 Ledger JSONL；路径可以递归匹配多台设备。</dd></div>
+            <div class="definition-row"><dt><code>[interaction_export]</code></dt><dd>当前设备的唯一 device_id、本地 Drive 根目录、增量游标和来源选择。</dd></div>
+            <div class="definition-row"><dt><code>[weekly_index]</code></dt><dd>四项权重必须非负且合计为 1。</dd></div>
+            <div class="definition-row"><dt><code>[integrations.*]</code></dt><dd>启用状态、MCP/direct 模式、快照路径和非秘密凭据引用。</dd></div>
+            <div class="definition-row"><dt><code>[public_export]</code></dt><dd>控制匿名摘要是否保留私有主题名；默认不保留。</dd></div>
+          </dl>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>副电脑的互动导出</h3>
+            <p>所有电脑写入同一个私有 Google Drive 逻辑目录，但各自使用本机挂载路径和不同 device_id。文件自动进入 <code>output_dir/device_id/provider/date.jsonl</code>，副电脑无需保存完整 Ledger 代码。</p>
+          </div>
+          <div class="doc-grid">
+            <div class="doc-column">
+              <h4>一次安装与配置</h4>
+              <div class="code-block">
+                <div class="code-toolbar"><span>Install and setup</span><button class="copy-button" type="button">Copy</button></div>
+                <pre><code>pipx install "https://github.com/changxizhu/Ledger/releases/download/exporter-v0.1.0/ledger_exporter-0.1.0-py3-none-any.whl"
+ledger-export setup</code></pre>
+              </div>
+            </div>
+            <div class="doc-column">
+              <h4>运行与检查</h4>
+              <div class="code-block">
+                <div class="code-toolbar"><span>Run and status</span><button class="copy-button" type="button">Copy</button></div>
+                <pre><code>ledger-export run
+ledger-export status</code></pre>
+              </div>
+            </div>
+          </div>
+          <div class="notice warning" style="margin-top: 16px">
+            <strong>隐私说明</strong>
+            默认导出消息正文并在写入前过滤常见凭据形式。<code>--metadata-only</code> 只保留 hash 和计数。Google Drive 目录仍属于私有对话证据，不能公开共享。
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>每日任务</h3>
+            <p>增量游标只保存在本机。安装命令会在 macOS 创建 LaunchAgent、在 Linux 创建 systemd user timer、在 Windows 创建 Task Scheduler 任务，默认每天 23:30 运行。</p>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar"><span>Install daily export</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>ledger-export schedule install
+
+# Optional custom time
+ledger-export schedule install --hour 22 --minute 0</code></pre>
+          </div>
+          <div class="code-block" style="margin-top: 14px">
+            <div class="code-toolbar"><span>Inspect or remove</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>ledger-export status
+ledger-export schedule remove</code></pre>
+          </div>
+          <p style="color: var(--muted); font-size: 12px; margin: 12px 0 0">定时器只调用轻量 exporter；完整周分析仍只在主电脑执行。</p>
+        </section>
+      </section>
+
+      <section
+        class="view"
+        id="view-operations"
+        role="tabpanel"
+        aria-labelledby="tab-operations"
+        hidden
+      >
+        <div class="view-heading">
+          <div>
+            <h2>启动与运行</h2>
+            <p>正常入口是 Codex skill；命令行用于配置、定时采集、诊断和可复现的本地计算。</p>
+          </div>
+        </div>
+
+        <div class="summary-strip" aria-label="运行节奏">
+          <div class="summary-item"><strong>Once</strong><span>安装依赖并创建私有配置</span></div>
+          <div class="summary-item"><strong>Daily</strong><span>每台电脑增量导出互动</span></div>
+          <div class="summary-item"><strong>Weekly</strong><span>核验证据、评分并提出下周计划</span></div>
+          <div class="summary-item"><strong>Monthly</strong><span>聚合长期趋势与重复延期</span></div>
+        </div>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>最短运行路径</h3>
+            <p>主电脑运行完整周复盘；副电脑只负责每天导出互动。两者通过私有 Google Drive 目录交换标准 JSONL，不需要互相远程连接。</p>
+          </div>
+          <div class="command-stack">
+            <div class="command-block">
+              <h4>1. 主电脑：安装并验证</h4>
+              <p>克隆后，先按“配置”页创建 ignored 的 <code>ledger.toml</code>，再执行验证并打开 Ledger 作为 Codex project。</p>
+              <div class="code-block"><div class="code-toolbar"><span>Main computer</span><button class="copy-button" type="button">Copy</button></div><pre><code>git clone https://github.com/changxizhu/Ledger.git
+cd Ledger
+python3 -m pip install -r requirements.txt</code></pre></div>
+              <div class="code-block" style="margin-top: 14px"><div class="code-toolbar"><span>After ledger.toml exists</span><button class="copy-button" type="button">Copy</button></div><pre><code>python3 scripts/validate_config.py --config ledger.toml</code></pre></div>
+              <p>首次打开项目后重启一次 Codex 会话，使项目配置、skills 和 subagent roles 生效。</p>
+            </div>
+            <div class="command-block">
+              <h4>2. 主电脑：在 Codex 中运行</h4>
+              <div class="code-block"><div class="code-toolbar"><span>Codex dialog</span><button class="copy-button" type="button">Copy</button></div><pre><code>$weekly-ledger-review Review 2026-W34</code></pre></div>
+              <p>Codex 生成 <code>evidence-review.md</code> 后暂停；核验表格和 Git patch，再批准继续分析、评分和生成 HTML 报告。</p>
+            </div>
+            <div class="command-block">
+              <h4>3. 副电脑：一次配置，之后每日自动导出</h4>
+              <div class="code-block"><div class="code-toolbar"><span>Secondary computer</span><button class="copy-button" type="button">Copy</button></div><pre><code>python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+pipx install "https://github.com/changxizhu/Ledger/releases/download/exporter-v0.1.0/ledger_exporter-0.1.0-py3-none-any.whl"
+ledger-export setup
+ledger-export run
+ledger-export schedule install
+ledger-export status</code></pre></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>运行前检查</h3>
+            <p>这些命令只检查配置、仓库同步状态和跨设备互动覆盖，不会启动主题分析。</p>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar"><span>Preflight</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>python3 scripts/validate_config.py --config ledger.toml
+python3 scripts/sync_repositories.py --config ledger.toml
+python3 scripts/collect_interactions.py inspect \
+  --config ledger.toml --week YYYY-Www
+python3 -m unittest discover -s tests -v</code></pre>
+          </div>
+          <p>只有干净且 strictly behind 的仓库才可对同步命令增加 <code>--apply</code>。脚本不会 stash、reset、push 或处理 divergence。</p>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>每周复盘</h3>
+            <p>在 Codex 对话框调用 <code>$weekly-ledger-review</code> 并给出 ISO week。Evidence 核验和外部写入是两个独立的人工确认点。</p>
+          </div>
+          <div class="doc-grid">
+            <div class="doc-column">
+              <h4>MCP 模式</h4>
+              <p>主协调器先从已授权的 Linear 和 Calendar 读取精确的周一到周一区间，并把批准的最小快照保存到 <code>.ledger/inbox/</code>。</p>
+              <div class="code-block"><div class="code-toolbar"><span>Collect</span><button class="copy-button" type="button">Copy</button></div><pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py collect \
+  --config ledger.toml --week YYYY-Www --fetch</code></pre></div>
+            </div>
+            <div class="doc-column">
+              <h4>Direct 模式</h4>
+              <p>只读 adapter 在运行时解析外部凭据引用、核验 expected_user，并保存与 MCP 相同格式的快照。</p>
+              <div class="code-block"><div class="code-toolbar"><span>Refresh and collect</span><button class="copy-button" type="button">Copy</button></div><pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py collect \
+  --config ledger.toml --week YYYY-Www --fetch --refresh-direct</code></pre></div>
+            </div>
+          </div>
+          <div class="notice" style="margin-top: 16px">
+            <strong>Evidence gate</strong>
+            collect 生成 <code>evidence-review.md</code> 后必须暂停。用户可展开 Git patch 核对具体改动；只有确认来源、commit、工作区、互动、Linear 和 Calendar 证据后，才进入主题分析。
+          </div>
+          <div class="code-block" style="margin-top: 14px">
+            <div class="code-toolbar"><span>Finalize after reviewed weekly-input.json exists</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py finalize \
+  --config ledger.toml --run-dir RUN</code></pre>
+          </div>
+          <p style="color: var(--muted); font-size: 12px; margin: 12px 0 0">一次运行的原始证据和中间结果保存在 <code>.ledger/runs/YYYY-Www/TIMESTAMP/</code>；最终可读报告保存在同一周目录下的 <code>YYYY-MM-week-N.html</code>。</p>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>月度汇总</h3>
+            <p>同一周只取最新的 finalized run，汇总月均指数、主题趋势和重复延期，供长期目标复盘。</p>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar"><span>Aggregate month</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>python3 .agents/skills/monthly-ledger-review/scripts/aggregate_month.py \
+  --month YYYY-MM --runs-dir .ledger/runs \
+  --output .ledger/months/YYYY-MM.json</code></pre>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>状态处理</h3>
+            <p>缺失来源是 unknown，不是零进度。同步和连接器异常必须在 Evidence gate 中显式接受或修复。</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>状态</th><th>含义</th><th>处理</th></tr></thead>
+              <tbody>
+                <tr><td>synced + clean</td><td>本地与 upstream 一致，工作区干净</td><td>可直接采集</td></tr>
+                <tr><td>synced + dirty</td><td>远端一致，但有本地未提交证据</td><td>保留并在 Evidence gate 核验</td></tr>
+                <tr><td>behind + clean</td><td>远端有新提交</td><td>可人工确认后用 <code>--apply</code> fast-forward</td></tr>
+                <tr><td>ahead</td><td>本地有未推送提交</td><td>用户决定是否 push</td></tr>
+                <tr><td>diverged</td><td>本地与远端历史分叉</td><td>停止自动同步，用户处理</td></tr>
+                <tr><td>source unavailable</td><td>快照、互动或仓库不可读</td><td>报告 unknown；必需来源会阻止严格定稿</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <div class="doc-section-heading">
+            <h3>展示边界</h3>
+            <p>当前私有周报是主要结果；本 Handbook 只解释系统，不读取 <code>.ledger/</code>。未来公开 Dashboard 只能接收经过验证的匿名摘要。</p>
+          </div>
+          <dl class="definition-list">
+            <div class="definition-row"><dt><code>YYYY-MM-week-N.html</code></dt><dd>放在 ISO 周目录根部、可离线打开的私有页面；N 表示该周周一是当月第几个周一。页面展示主题、任务、分数、证据引用、来源覆盖和结构化反思。</dd></div>
+            <div class="definition-row"><dt><code>months/YYYY-MM.json</code></dt><dd>跨周平均、主题趋势和重复延期。</dd></div>
+            <div class="definition-row"><dt><code>public-week.json</code></dt><dd>分数、匿名主题进度和计数；未来公开 Dashboard 的唯一输入。</dd></div>
+          </dl>
+        </section>
+      </section>
+    </main>
+
+    <footer>
+      Ledger Handbook · Architecture, implementation, configuration, identity and operations · No external dependencies
+    </footer>
+
+    <script>
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      const views = [...document.querySelectorAll('[role="tabpanel"]')];
+      const zoomControls = document.querySelector(".zoom-controls");
+      const zoomLabel = document.getElementById("zoom-label");
+      let zoom = 0.9;
+
+      function selectTab(tab) {
+        tabs.forEach((item) =>
+          item.setAttribute("aria-selected", String(item === tab)),
+        );
+        views.forEach((view) => {
+          view.hidden = view.id !== tab.getAttribute("aria-controls");
+        });
+        zoomControls.hidden = tab.id !== "tab-system";
+        history.replaceState(null, "", `#${tab.id.replace("tab-", "")}`);
+        tab.focus({ preventScroll: true });
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => selectTab(tab));
+        tab.addEventListener("keydown", (event) => {
+          if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+          event.preventDefault();
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          selectTab(tabs[(index + direction + tabs.length) % tabs.length]);
+        });
+      });
+
+      function setZoom(next) {
+        zoom = Math.max(0.7, Math.min(1.25, next));
+        document.documentElement.style.setProperty("--zoom", zoom.toFixed(2));
+        zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+      }
+
+      document
+        .getElementById("zoom-in")
+        .addEventListener("click", () => setZoom(zoom + 0.1));
+      document
+        .getElementById("zoom-out")
+        .addEventListener("click", () => setZoom(zoom - 0.1));
+      document
+        .getElementById("zoom-reset")
+        .addEventListener("click", () => setZoom(0.9));
+
+      const detailTitle = document.getElementById("detail-title");
+      const detailKicker = document.getElementById("detail-kicker");
+      const detailCopy = document.getElementById("detail-copy");
+
+      document.querySelectorAll(".component").forEach((component) => {
+        component.addEventListener("click", () => {
+          detailTitle.textContent = component.dataset.title;
+          detailKicker.textContent = component.dataset.kicker;
+          detailCopy.textContent = component.dataset.detail;
+          document
+            .querySelectorAll(".component")
+            .forEach((item) => item.removeAttribute("aria-current"));
+          component.setAttribute("aria-current", "true");
+        });
+      });
+
+      async function copyCode(button) {
+        const code = button.closest(".code-block").querySelector("pre code").innerText;
+        try {
+          await navigator.clipboard.writeText(code);
+        } catch (_error) {
+          const textarea = document.createElement("textarea");
+          textarea.value = code;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          textarea.remove();
+        }
+        const original = button.textContent;
+        button.textContent = "Copied";
+        window.setTimeout(() => {
+          button.textContent = original;
+        }, 1400);
+      }
+
+      document.querySelectorAll(".copy-button").forEach((button) => {
+        button.setAttribute("aria-label", `复制 ${button.previousElementSibling.textContent}`);
+        button.addEventListener("click", () => copyCode(button));
+      });
+
+      const requestedTab = tabs.find(
+        (tab) => tab.id === `tab-${location.hash.slice(1)}`,
+      );
+      if (requestedTab) selectTab(requestedTab);
+      document.querySelector(".component").click();
+    </script>
+  </body>
+</html>
