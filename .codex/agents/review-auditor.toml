@@ -2,9 +2,19 @@ name = "review_auditor"
 description = "Read-only reviewer that checks weekly scores, evidence coverage, privacy, and unsupported conclusions."
 sandbox_mode = "read-only"
 developer_instructions = """
-Audit the weekly record and generated report. Recalculate suspicious values,
-identify unsupported claims, verify that private content is not prepared for
-publication, and distinguish missing data from zero progress. Return findings
-only; do not rewrite the report or modify files.
+Read only the supplied evidence, reviewed weekly input, score, report, proposals,
+and public export. Recalculate suspicious values, identify unsupported claims,
+verify that every theme evidence_ref resolves to the supplied evidence and that
+its reason supports the stated theme,
+verify that private content is absent from the public export, and distinguish
+missing data from zero progress. Return findings only. Do not inspect other paths,
+call app or MCP tools, rewrite the report, or modify files.
 """
 
+[apps._default]
+enabled = false
+
+[features]
+apps = false
+
+[mcp_servers]

@@ -1,4 +1,6 @@
 {
+  "schema_version": 1,
+  "profile_id": "owner",
   "week": "2026-W34",
   "period": {
     "start": "2026-08-17",
@@ -7,24 +9,67 @@
   "target_focus_hours": 24,
   "actual_focus_hours": 20.5,
   "tasks": [
-    {"title": "Finish experiment summary", "weight": 3, "completed": true},
-    {"title": "Review two papers", "weight": 2, "completed": true},
-    {"title": "Prepare next experiment", "weight": 2, "completed": false}
+    { "title": "Finish experiment summary", "weight": 3, "completed": true },
+    { "title": "Review two papers", "weight": 2, "completed": true },
+    { "title": "Prepare next experiment", "weight": 2, "completed": false }
   ],
   "themes": [
     {
       "name": "Research experiments",
+      "public_name": "Research",
       "weight": 3,
       "progress": 0.8,
-      "evidence_count": 7,
+      "evidence_count": 2,
+      "evidence_refs": [
+        {
+          "event_type": "git_commit",
+          "source": "research-code",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "path": "experiments/summary.md",
+          "reason": "Records the completed comparison and its result."
+        },
+        {
+          "event_type": "interaction",
+          "source": "scheduled-exports",
+          "event_id": "interaction-001",
+          "reason": "Documents the interpretation of the comparison."
+        }
+      ],
       "summary": "Completed the main comparison and recorded the result."
     },
     {
       "name": "Paper reading",
+      "public_name": "Learning",
       "weight": 2,
       "progress": 0.65,
-      "evidence_count": 3,
+      "evidence_count": 1,
+      "evidence_refs": [
+        {
+          "event_type": "git_commit",
+          "source": "notes",
+          "commit": "89abcdef0123456789abcdef0123456789abcdef",
+          "path": "Paper Reading/method.md",
+          "reason": "Contains the extracted method notes used in the weekly synthesis."
+        }
+      ],
       "summary": "Extracted useful methods but did not finish the synthesis."
     }
-  ]
+  ],
+  "source_status": [
+    { "name": "notes", "category": "repository", "required": true, "status": "available" },
+    { "name": "research-code", "category": "repository", "required": true, "status": "available" },
+    { "name": "linear", "category": "connector", "required": true, "status": "available" },
+    { "name": "google_calendar", "category": "connector", "required": false, "status": "available" }
+  ],
+  "reflection": [
+    {
+      "issue": "The next experiment was not prepared",
+      "evidence": "The task remained incomplete while the main comparison was finished.",
+      "why_it_matters": "Preparation delays the next experiment cycle.",
+      "suggestion": "Reserve the first focus block next week for the experiment setup."
+    }
+  ],
+  "next_plan": {
+    "tasks": [{ "title": "Write the experiment setup", "weight": 2 }]
+  }
 }

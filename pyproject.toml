@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ledger-exporter"
+version = "0.1.2"
+description = "Lightweight scheduled Codex and Claude Code exporter for Ledger"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+ledger-export = "ledger_export_cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "scripts"}
+py-modules = ["export_interactions", "ledger_export_cli", "time_utils"]

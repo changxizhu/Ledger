@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledger.local/schemas/interaction-event.schema.json",
+  "title": "Ledger interaction event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "captured_at",
+    "source",
+    "device_id",
+    "role",
+    "workspace",
+    "session_id",
+    "turn_id",
+    "event",
+    "model",
+    "agent_type",
+    "character_count",
+    "content_sha256",
+    "event_id"
+  ],
+  "properties": {
+    "format_version": { "const": 1 },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "enum": ["codex", "claude_code"] },
+    "device_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "role": { "type": "string", "minLength": 1 },
+    "workspace": { "type": ["string", "null"] },
+    "session_id": { "type": ["string", "null"] },
+    "turn_id": { "type": ["string", "null"] },
+    "event": { "type": ["string", "null"] },
+    "model": { "type": ["string", "null"] },
+    "agent_type": { "type": ["string", "null"] },
+    "character_count": { "type": "integer", "minimum": 0 },
+    "content_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "event_id": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "content": { "type": "string" }
+  }
+}
