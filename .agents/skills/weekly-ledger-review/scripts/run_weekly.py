@@ -13,6 +13,7 @@ from typing import Any
 
 try:
     from ._project import ensure_project_root
+    from .apply_connectors import apply_proposals
     from .build_evidence_report import render_evidence_report
     from .build_proposals import build_proposals
     from .build_html_report import render_report
@@ -20,8 +21,10 @@ try:
     from .refresh_connectors import refresh_direct_connector_snapshots
     from .sanitize_export import sanitize_week
     from .score_week import calculate_weekly_index
+    from .sync_google_tasks import sync_linear_to_google_tasks
 except ImportError:  # Direct script execution.
     from _project import ensure_project_root
+    from apply_connectors import apply_proposals
     from build_evidence_report import render_evidence_report
     from build_proposals import build_proposals
     from build_html_report import render_report
@@ -29,6 +32,7 @@ except ImportError:  # Direct script execution.
     from refresh_connectors import refresh_direct_connector_snapshots
     from sanitize_export import sanitize_week
     from score_week import calculate_weekly_index
+    from sync_google_tasks import sync_linear_to_google_tasks
 
 ensure_project_root()
 
@@ -392,9 +396,11 @@ def main() -> None:
     collect_parser.add_argument("--week", required=True)
     collect_parser.add_argument("--fetch", action="store_true")
     collect_parser.add_argument(
+        "--refresh-api",
         "--refresh-direct",
+        dest="refresh_direct",
         action="store_true",
-        help="Refresh connectors configured with auth_mode=direct before collection",
+        help="Refresh connectors configured with read_backend=api before collection",
     )
 
     finalize_parser = subparsers.add_parser("finalize")
@@ -402,6 +408,29 @@ def main() -> None:
     finalize_parser.add_argument("--run-dir", type=Path, required=True)
     finalize_parser.add_argument("--input", type=Path)
     finalize_parser.add_argument("--allow-incomplete", action="store_true")
+
+    apply_parser = subparsers.add_parser("apply")
+    apply_parser.add_argument("--config", type=Path, required=True)
+    apply_parser.add_argument("--run-dir", type=Path, required=True)
+    apply_parser.add_argument(
+        "--approved",
+        action="store_true",
+        help="Confirm that the user approved the exact proposals.json contents",
+    )
+    apply_parser.add_argument(
+        "--allow-past-reminder",
+        action="store_true",
+        help="Explicitly allow updating a Monday reminder whose end time has passed",
+    )
+
+    tasks_parser = subparsers.add_parser("sync-tasks")
+    tasks_parser.add_argument("--config", type=Path, required=True)
+    tasks_parser.add_argument("--week", required=True)
+    tasks_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the previewed Linear-to-Google Tasks changes",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -420,11 +449,26 @@ def main() -> None:
                 indent=2,
             )
         )
-    else:
+    elif args.command == "finalize":
         run_dir = args.run_dir.expanduser().resolve()
         input_path = args.input or (run_dir / "weekly-input.json")
         manifest = finalize_run(config, run_dir, input_path, args.allow_incomplete)
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
+    elif args.command == "apply":
+        result = apply_proposals(
+            config,
+            args.run_dir,
+            approved=args.approved,
+            allow_past_reminder=args.allow_past_reminder,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        result = sync_linear_to_google_tasks(
+            config,
+            args.week,
+            apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

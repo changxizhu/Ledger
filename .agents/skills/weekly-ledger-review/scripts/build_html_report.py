@@ -70,18 +70,42 @@ def _score_state(score: float) -> tuple[str, str, str]:
 def _component_rows(index: dict[str, Any]) -> tuple[str, str, str]:
     components = index.get("components", {})
     weights = index.get("weights", {})
-    values = [(key, label, _percent(components.get(key))) for key, label in COMPONENTS]
-    strongest = max(values, key=lambda item: item[2])
-    weakest = min(values, key=lambda item: item[2])
+    effective_weights = index.get("effective_weights", {})
+    values = [
+        (
+            key,
+            label,
+            _percent(components.get(key)) if components.get(key) is not None else None,
+        )
+        for key, label in COMPONENTS
+    ]
+    available = [item for item in values if item[2] is not None]
+    strongest = max(available, key=lambda item: item[2]) if available else None
+    weakest = min(available, key=lambda item: item[2]) if available else None
     rows = []
     for key, label, value in values:
         weight = _number(weights.get(key))
-        contribution = value * weight
-        context = (
-            f"{weight * 100:.0f}% weight &middot; {contribution:.1f} pts"
-            if weight
-            else "Score component"
-        )
+        if value is None:
+            rows.append(
+                f"""
+            <div class="component-row component-{key} is-unavailable">
+              <div class="component-copy">
+                <span>{escape(label)}</span>
+                <small>{weight * 100:.0f}% configured &middot; excluded from score</small>
+              </div>
+              <div class="component-bar" role="img" aria-label="{escape(label)} unavailable">
+                <i style="width:0%"></i>
+              </div>
+              <strong>N/A</strong>
+            </div>"""
+            )
+            continue
+        effective_weight = _number(effective_weights.get(key), weight)
+        contribution = value * effective_weight
+        context = f"{weight * 100:.0f}% configured"
+        if effective_weight != weight:
+            context += f" &middot; {effective_weight * 100:.0f}% effective"
+        context += f" &middot; {contribution:.1f} pts"
         rows.append(
             f"""
             <div class="component-row component-{key}">
@@ -95,7 +119,11 @@ def _component_rows(index: dict[str, Any]) -> tuple[str, str, str]:
               <strong>{value:.1f}</strong>
             </div>"""
         )
-    return "\n".join(rows), strongest[1], weakest[1]
+    return (
+        "\n".join(rows),
+        strongest[1] if strongest else "None",
+        weakest[1] if weakest else "None",
+    )
 
 
 def _theme_tone(progress: float) -> str:
@@ -261,7 +289,18 @@ def _reflection_items(reflection: list[dict[str, Any]]) -> str:
 def render_report(data: dict[str, Any]) -> str:
     index = data["weekly_index"]
     score = _percent(index.get("score"))
-    state_label, state_class, state_copy = _score_state(score)
+    score_coverage = _percent(index.get("score_coverage", 100))
+    if score_coverage < 100:
+        state_label = "Partial score"
+        state_class = "attention"
+        state_copy = (
+            f"Based on {score_coverage:.0f}% of configured index weight. "
+            "Missing components are excluded, not scored as zero."
+        )
+        score_basis = f"{score_coverage:.0f}% coverage"
+    else:
+        state_label, state_class, state_copy = _score_state(score)
+        score_basis = "out of 100"
     component_rows, strongest_component, weakest_component = _component_rows(index)
     tasks = data.get("tasks", [])
     themes = data.get("themes", [])
@@ -269,6 +308,23 @@ def render_report(data: dict[str, Any]) -> str:
     source_status = data.get("source_status", [])
     done = [task for task in tasks if task.get("completed")]
     open_tasks = [task for task in tasks if not task.get("completed") and not task.get("cancelled")]
+    raw_plan_status = str(data.get("plan_status", {}).get("status", "available"))
+    plan_available = raw_plan_status in {"available", "complete", "ready"}
+    task_summary = (
+        f"{len(done)} / {len([task for task in tasks if not task.get('cancelled')])}"
+        if plan_available
+        else "N/A"
+    )
+    done_tasks = (
+        _task_list(done, "No completed tasks recorded.", "done")
+        if plan_available
+        else '<p class="empty-state">Weekly plan unavailable.</p>'
+    )
+    open_task_items = (
+        _task_list(open_tasks, "Nothing to carry forward.", "open")
+        if plan_available
+        else '<p class="empty-state">Carry-forward status unavailable.</p>'
+    )
     evidence_count = sum(len(theme.get("evidence_refs", [])) for theme in themes)
     sources_available = sum(source.get("status") == "available" for source in source_status)
     source_warnings = sum(source.get("status") not in {"available", "disabled"} for source in source_status)
@@ -354,6 +410,8 @@ def render_report(data: dict[str, Any]) -> str:
       .component-focus .component-bar i { background: var(--amber); }
       .component-evidence .component-bar i { background: var(--charcoal); }
       .component-row > strong { text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; }
+      .component-row.is-unavailable { color: var(--muted); }
+      .component-row.is-unavailable .component-bar { background: #eef1ef; }
       .summary-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--paper); border-bottom: 1px solid var(--line); }
       .summary-stat { min-width: 0; padding: 17px 22px; border-right: 1px solid var(--line); }
       .summary-stat:last-child { border-right: 0; }
@@ -488,7 +546,7 @@ def render_report(data: dict[str, Any]) -> str:
         </div>
         <div class="overview-grid score-$state_class">
           <div class="score-panel">
-            <div class="score-gauge" style="--score-angle:$score_angle" role="img" aria-label="Weekly index $score out of 100"><div class="score-value"><strong>$score</strong><span>out of 100</span></div></div>
+            <div class="score-gauge" style="--score-angle:$score_angle" role="img" aria-label="Weekly index $score out of 100, $score_basis"><div class="score-value"><strong>$score</strong><span>$score_basis</span></div></div>
             <div class="score-copy"><strong>$state_label</strong><p>$state_copy</p></div>
           </div>
           <div class="component-panel">
@@ -499,7 +557,7 @@ def render_report(data: dict[str, Any]) -> str:
         <div class="summary-stats">
           <div class="summary-stat"><strong>$theme_count</strong><span>work themes</span></div>
           <div class="summary-stat"><strong>$evidence_count</strong><span>evidence references</span></div>
-          <div class="summary-stat"><strong>$done_count / $task_count</strong><span>tasks completed</span></div>
+          <div class="summary-stat"><strong>$task_summary</strong><span>tasks completed</span></div>
           <div class="summary-stat"><strong>$source_warnings</strong><span>sources need review</span></div>
         </div>
         $plan_notice
@@ -533,6 +591,7 @@ def render_report(data: dict[str, Any]) -> str:
         period=_text(_period_label(data.get("period", {}))),
         score=f"{score:.1f}",
         score_angle=f"{score * 3.6:.1f}deg",
+        score_basis=escape(score_basis),
         state_label=state_label,
         state_class=state_class,
         state_copy=state_copy,
@@ -541,8 +600,7 @@ def render_report(data: dict[str, Any]) -> str:
         component_rows=component_rows,
         theme_count=len(themes),
         evidence_count=evidence_count,
-        done_count=len(done),
-        task_count=len([task for task in tasks if not task.get("cancelled")]),
+        task_summary=task_summary,
         source_warnings=source_warnings,
         plan_notice=plan_notice,
         theme_sections=theme_sections,
@@ -550,7 +608,7 @@ def render_report(data: dict[str, Any]) -> str:
         source_count=len(source_status),
         source_coverage=source_coverage,
         source_rows=_source_rows(source_status),
-        done_tasks=_task_list(done, "No completed tasks recorded.", "done"),
-        open_tasks=_task_list(open_tasks, "Nothing to carry forward.", "open"),
+        done_tasks=done_tasks,
+        open_tasks=open_task_items,
         reflection_items=_reflection_items(reflection),
     )

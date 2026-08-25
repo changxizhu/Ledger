@@ -41,6 +41,157 @@ class LedgerCommonTests(unittest.TestCase):
         self.assertTrue(any("credential_ref" in error for error in errors))
         self.assertTrue(any("env: or keychain:" in error for error in errors))
 
+    def test_config_accepts_separate_mcp_read_and_api_write_backends(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "read_backend": "mcp",
+                    "write_backend": "api",
+                    "allow_browser_fallback": False,
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                    "expected_user": "owner@example.com",
+                    "credential_ref": "env:LINEAR_CREDENTIAL",
+                }
+            },
+        }
+        self.assertEqual(ledger_common.validate_config(config, check_paths=False), [])
+
+    def test_config_accepts_explicitly_allowed_inline_credentials(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "security": {"allow_inline_credentials": True},
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "read_backend": "mcp",
+                    "write_backend": "api",
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                    "expected_user": "owner@example.com",
+                    "api_key": "linear-key",
+                },
+                "google_calendar": {
+                    "enabled": True,
+                    "read_backend": "mcp",
+                    "write_backend": "api",
+                    "calendar": "primary",
+                    "snapshot": ".ledger/inbox/google-calendar.json",
+                    "expected_user": "owner@example.com",
+                    "client_id": "client-id",
+                    "client_secret": "client-secret",
+                    "refresh_token": "refresh-token",
+                },
+            },
+        }
+        self.assertEqual(ledger_common.validate_config(config, check_paths=False), [])
+
+    def test_config_rejects_inline_credentials_without_opt_in(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "read_backend": "mcp",
+                    "write_backend": "api",
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                    "expected_user": "owner@example.com",
+                    "api_key": "linear-key",
+                }
+            },
+        }
+        errors = ledger_common.validate_config(config, check_paths=False)
+        self.assertTrue(any("allow_inline_credentials" in error for error in errors))
+
+    def test_config_forbids_browser_connector_fallback(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                    "allow_browser_fallback": True,
+                }
+            },
+        }
+        errors = ledger_common.validate_config(config, check_paths=False)
+        self.assertTrue(any("browser UI" in error for error in errors))
+
+    def test_google_tasks_reuses_google_credentials_and_requires_api_backends(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "auth_mode": "direct",
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                    "expected_user": "owner@example.com",
+                    "credential_ref": "env:LINEAR_CREDENTIAL",
+                },
+                "google_calendar": {
+                    "enabled": True,
+                    "auth_mode": "direct",
+                    "snapshot": ".ledger/inbox/google-calendar.json",
+                    "expected_user": "owner@example.com",
+                    "client_id_ref": "env:GOOGLE_CLIENT_ID",
+                    "refresh_credential_ref": "env:GOOGLE_REFRESH_CREDENTIAL",
+                },
+                "google_tasks": {
+                    "enabled": True,
+                    "read_backend": "api",
+                    "write_backend": "api",
+                    "allow_browser_fallback": False,
+                    "credentials_from": "google_calendar",
+                    "source": "linear",
+                    "tasklist": "Linear",
+                },
+            },
+        }
+        self.assertEqual(ledger_common.validate_config(config, check_paths=False), [])
+
+        config["integrations"]["google_tasks"]["write_backend"] = "disabled"
+        errors = ledger_common.validate_config(config, check_paths=False)
+        self.assertIn("integrations.google_tasks.write_backend must be api", errors)
+
+    def test_config_rejects_unimplemented_mcp_write_backend(self) -> None:
+        config = {
+            "_config_root": "/tmp",
+            "timezone": "Asia/Shanghai",
+            "identity": {"person_id": "owner", "git_names": ["Owner"]},
+            "repositories": [{"name": "repo", "path": "/missing"}],
+            "integrations": {
+                "linear": {
+                    "enabled": True,
+                    "read_backend": "mcp",
+                    "write_backend": "mcp",
+                    "team": "Ledger",
+                    "snapshot": ".ledger/inbox/linear.json",
+                }
+            },
+        }
+        errors = ledger_common.validate_config(config, check_paths=False)
+        self.assertTrue(any("write_backend must be disabled or api" in error for error in errors))
+
     def test_config_accepts_only_the_shared_interaction_contract(self) -> None:
         config = {
             "_config_root": "/tmp",

@@ -1,7 +1,11 @@
 import subprocess
 import unittest
 
-from scripts.credentials import CredentialError, resolve_credential
+from scripts.credentials import (
+    CredentialError,
+    resolve_config_credential,
+    resolve_credential,
+)
 
 
 class CredentialTests(unittest.TestCase):
@@ -42,6 +46,22 @@ class CredentialTests(unittest.TestCase):
                 "owner",
             ],
         )
+
+    def test_resolves_inline_config_credential(self) -> None:
+        self.assertEqual(
+            resolve_config_credential(
+                {"api_key": "inline-value"}, "api_key", "credential_ref"
+            ),
+            "inline-value",
+        )
+
+    def test_rejects_ambiguous_config_credential(self) -> None:
+        with self.assertRaisesRegex(CredentialError, "only one"):
+            resolve_config_credential(
+                {"api_key": "inline", "credential_ref": "env:LINEAR_KEY"},
+                "api_key",
+                "credential_ref",
+            )
 
 
 if __name__ == "__main__":

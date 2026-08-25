@@ -45,6 +45,10 @@ class OutputTests(unittest.TestCase):
         result = build_proposals(self.record, "Asia/Shanghai")
         self.assertEqual(result["google_calendar"]["title"], "Review weekly study plan")
         self.assertEqual(len(result["linear"]["tasks"]), 1)
+        self.assertTrue(result["linear"]["tasks"][0]["ledger_key"].startswith("weekly:"))
+        self.assertTrue(
+            result["google_calendar"]["ledger_key"].startswith("weekly-reminder:")
+        )
         self.assertTrue(result["approval_required"])
 
     def test_proposals_exclude_cancelled_tasks(self) -> None:
@@ -87,6 +91,54 @@ class OutputTests(unittest.TestCase):
         self.assertNotIn("<script>alert", report)
         self.assertIn("&lt;script&gt;alert", report)
 
+    def test_private_report_and_public_export_mark_missing_components(self) -> None:
+        self.record["weekly_index"].update(
+            {
+                "score": 79.5,
+                "components": {
+                    "plan": None,
+                    "progress": 75.0,
+                    "focus": None,
+                    "evidence": 100.0,
+                },
+                "component_status": {
+                    "plan": "unavailable",
+                    "progress": "available",
+                    "focus": "unavailable",
+                    "evidence": "available",
+                },
+                "score_coverage": 55.0,
+                "weights": {
+                    "plan": 0.3,
+                    "progress": 0.45,
+                    "focus": 0.15,
+                    "evidence": 0.1,
+                },
+                "effective_weights": {
+                    "plan": 0.0,
+                    "progress": 0.818182,
+                    "focus": 0.0,
+                    "evidence": 0.181818,
+                },
+            }
+        )
+        report = render_report(self.record)
+        public = sanitize_week(self.record)
+        self.assertIn("Partial score", report)
+        self.assertIn("N/A", report)
+        self.assertEqual(public["components"]["plan"], None)
+        self.assertEqual(public["score_coverage"], 55.0)
+
+        self.record["plan_status"] = {
+            "status": "unavailable",
+            "reason": "No weekly plan.",
+        }
+        report = render_report(self.record)
+        public = sanitize_week(self.record)
+        self.assertIn("Weekly plan unavailable.", report)
+        self.assertIsNone(public["completed_task_count"])
+        self.assertIsNone(public["planned_task_count"])
+
     def test_monthly_aggregation_finds_recurring_carry_forward(self) -> None:
         second_week = {
             **self.record,
@@ -109,6 +161,24 @@ class OutputTests(unittest.TestCase):
         result = aggregate([self.record, replacement], "2026-08")
         self.assertEqual(result["week_count"], 1)
         self.assertEqual(result["average_score"], 80.0)
+
+    def test_monthly_aggregation_treats_period_end_as_exclusive(self) -> None:
+        august_only = {
+            **self.record,
+            "week": "2026-W36",
+            "period": {"start": "2026-08-25", "end": "2026-09-01"},
+        }
+        result = aggregate([august_only], "2026-09")
+        self.assertEqual(result["week_count"], 0)
+
+    def test_monthly_aggregation_includes_a_week_that_crosses_month_start(self) -> None:
+        crossing = {
+            **self.record,
+            "week": "2026-W35",
+            "period": {"start": "2026-08-31", "end": "2026-09-07"},
+        }
+        result = aggregate([crossing], "2026-09")
+        self.assertEqual(result["week_count"], 1)
 
     def test_monthly_aggregation_excludes_cancelled_carry_forward(self) -> None:
         self.record["tasks"].append(

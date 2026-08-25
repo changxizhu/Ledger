@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve credential references without putting secret values in Ledger config."""
+"""Resolve referenced or explicitly allowed inline Ledger credentials."""
 
 from __future__ import annotations
 
@@ -78,3 +78,27 @@ def resolve_credential(
     if completed.returncode != 0 or not completed.stdout.strip():
         raise CredentialError("The referenced macOS Keychain credential is unavailable")
     return completed.stdout.rstrip("\r\n")
+
+
+def resolve_config_credential(
+    settings: Mapping[str, object],
+    inline_field: str,
+    reference_field: str,
+    *,
+    resolver: Callable[[str], str] | None = None,
+) -> str:
+    """Resolve one credential from an inline value or an external reference."""
+
+    inline_value = str(settings.get(inline_field, "")).strip()
+    reference = str(settings.get(reference_field, "")).strip()
+    if inline_value and reference:
+        raise CredentialError(
+            f"Configure only one of {inline_field} or {reference_field}"
+        )
+    if inline_value:
+        return inline_value
+    if reference:
+        return (resolver or resolve_credential)(reference)
+    raise CredentialError(
+        f"Configure {inline_field} or {reference_field}"
+    )

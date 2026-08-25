@@ -4,7 +4,8 @@ The scoring script expects one JSON object with:
 
 - `week`: ISO week label.
 - `period.start` and `period.end`: evidence interval.
-- `target_focus_hours` and `actual_focus_hours`: non-negative numbers.
+- `target_focus_hours` and `actual_focus_hours`: non-negative numbers, or `null` when the value is
+  unknown. A missing target is not zero performance.
 - `tasks`: title, positive weight, and completion state.
 - `themes`: name, positive weight, progress from 0 to 1, evidence count, exact evidence references,
   and a short evidence-based summary. `evidence_count` must equal the number of unique
@@ -22,6 +23,10 @@ and path for `git_commit`, the path for `git_worktree`, and `event_id` for `inte
 `linear_issue`, or `calendar_event`. References must copy exact values from the run's
 `evidence.json`; finalization verifies that they resolve.
 
+For an `interaction` reference, `source` means the configured evidence source stored as
+`source_name` on the interaction event, such as `scheduled-exports`. The event's `source` field is
+the model provider, such as `codex` or `claude_code`, and is not the evidence-reference source.
+
 The default index is:
 
 ```text
@@ -29,3 +34,6 @@ The default index is:
 ```
 
 Focus time is capped at 100%. Extra hours do not compensate for weak outcomes.
+When a plan or focus target is unavailable, that component is reported as `N/A` and the remaining
+available component weights are normalized. The report must also show the percentage of configured
+index weight represented by the score.

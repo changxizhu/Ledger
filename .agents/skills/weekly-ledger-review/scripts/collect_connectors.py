@@ -15,6 +15,7 @@ except ImportError:  # Direct script execution.
 ensure_project_root()
 
 from scripts.ledger_common import (
+    integration_backends,
     parse_timestamp,
     profile_id,
     resolve_config_path,
@@ -76,11 +77,13 @@ def collect_connector_snapshots(
         settings = integrations.get(name, {})
         enabled = bool(settings.get("enabled", False))
         required = bool(settings.get("required", enabled))
+        read_backend, write_backend = integration_backends(settings)
         snapshot_value = settings.get("snapshot")
         status: dict[str, Any] = {
             "name": name,
             "category": "connector",
-            "auth_mode": str(settings.get("auth_mode", "mcp")),
+            "read_backend": read_backend,
+            "write_backend": write_backend,
             "required": required,
             "status": "disabled" if not enabled else "unavailable",
         }

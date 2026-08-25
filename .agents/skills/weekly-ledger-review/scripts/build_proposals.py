@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -34,6 +35,15 @@ def build_proposals(
         seen_tasks.add(key)
         planned.append(task)
 
+    iso_year, iso_week, _ = period_end.isocalendar()
+    week = f"{iso_year}-W{iso_week:02d}"
+    keyed_tasks = []
+    for task in planned:
+        title = str(task["title"]).strip()
+        digest = hashlib.sha256(title.casefold().encode("utf-8")).hexdigest()[:12]
+        keyed_tasks.append({**task, "ledger_key": f"weekly:{week}:{digest}"})
+    planned = keyed_tasks
+
     zone = ZoneInfo(timezone_name)
     review_start = datetime.combine(period_end, time(9, 0), tzinfo=zone)
     review_end = review_start + timedelta(minutes=15)
@@ -60,5 +70,6 @@ def build_proposals(
             "popup_minutes_before": 10,
             "description": "\n".join(description_lines),
             "preserve_existing_time": True,
+            "ledger_key": f"weekly-reminder:{week}",
         },
     }

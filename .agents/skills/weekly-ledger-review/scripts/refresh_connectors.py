@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import ssl
 from collections.abc import Callable
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -20,8 +22,9 @@ except ImportError:  # Direct script execution.
 
 ensure_project_root()
 
-from scripts.credentials import resolve_credential
+from scripts.credentials import resolve_config_credential, resolve_credential
 from scripts.ledger_common import (
+    integration_backends,
     load_config,
     parse_timestamp,
     profile_id,
@@ -45,12 +48,28 @@ class ConnectorRefreshError(RuntimeError):
     """A direct connector could not produce a verified snapshot."""
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """Use Python's CA bundle, with the macOS system bundle as a fallback."""
+
+    paths = ssl.get_default_verify_paths()
+    candidates = [
+        os.environ.get(paths.openssl_cafile_env),
+        paths.cafile,
+        paths.openssl_cafile,
+        "/etc/ssl/cert.pem",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return ssl.create_default_context(cafile=candidate)
+    return ssl.create_default_context()
+
+
 def _request_json(
     method: str, url: str, headers: dict[str, str], body: bytes | None
 ) -> dict[str, Any]:
     request = Request(url, data=body, headers=headers, method=method)
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=30, context=_ssl_context()) as response:
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         raise ConnectorRefreshError(
@@ -134,7 +153,9 @@ def _refresh_linear(
     resolver: CredentialResolver,
 ) -> tuple[Path, dict[str, Any]]:
     settings = config["integrations"]["linear"]
-    credential = resolver(str(settings["credential_ref"]))
+    credential = resolve_config_credential(
+        settings, "api_key", "credential_ref", resolver=resolver
+    )
     identity_query = """
         query LedgerIdentity {
           viewer { id name email }
@@ -174,9 +195,10 @@ def _refresh_linear(
           team(id: $teamId) {
             issues(first: 250, after: $after, orderBy: updatedAt) {
               nodes {
-                id identifier title priority estimate createdAt updatedAt
-                completedAt canceledAt
+                id identifier title description url dueDate priority estimate
+                createdAt updatedAt completedAt canceledAt
                 state { name type }
+                assignee { id name email }
                 cycle { id name number startsAt endsAt }
               }
               pageInfo { hasNextPage endCursor }
@@ -220,13 +242,21 @@ def _refresh_linear(
         issues.append(
             {
                 "id": issue.get("identifier") or issue.get("id"),
+                "linear_id": issue.get("id"),
+                "identifier": issue.get("identifier"),
                 "title": issue.get("title") or "Untitled issue",
+                "description": issue.get("description"),
+                "url": issue.get("url"),
+                "due_date": issue.get("dueDate"),
                 "status": state.get("name") or state_type or "Unknown",
                 "completed": state_type == "completed"
                 or bool(issue.get("completedAt")),
                 "cancelled": state_type in {"canceled", "cancelled"}
                 or bool(issue.get("canceledAt")),
+                "completed_at": issue.get("completedAt"),
+                "cancelled_at": issue.get("canceledAt"),
                 "weight": weight,
+                "assignee": issue.get("assignee"),
                 "cycle": issue.get("cycle"),
                 "updated_at": issue.get("updatedAt"),
             }
@@ -264,12 +294,24 @@ def _refresh_google_calendar(
 ) -> tuple[Path, dict[str, Any]]:
     settings = config["integrations"]["google_calendar"]
     form = {
-        "client_id": resolver(str(settings["client_id_ref"])),
-        "refresh_token": resolver(str(settings["refresh_credential_ref"])),
+        "client_id": resolve_config_credential(
+            settings, "client_id", "client_id_ref", resolver=resolver
+        ),
+        "refresh_token": resolve_config_credential(
+            settings,
+            "refresh_token",
+            "refresh_credential_ref",
+            resolver=resolver,
+        ),
         "grant_type": "refresh_token",
     }
-    if settings.get("client_credential_ref"):
-        form["client_secret"] = resolver(str(settings["client_credential_ref"]))
+    if settings.get("client_secret") or settings.get("client_credential_ref"):
+        form["client_secret"] = resolve_config_credential(
+            settings,
+            "client_secret",
+            "client_credential_ref",
+            resolver=resolver,
+        )
     token_response = request_json(
         "POST",
         GOOGLE_TOKEN_ENDPOINT,
@@ -386,7 +428,8 @@ def refresh_direct_connector_snapshots(
     }
     for name, refresher in refreshers.items():
         settings = integrations.get(name, {})
-        if not settings.get("enabled") or settings.get("auth_mode", "mcp") != "direct":
+        read_backend, _ = integration_backends(settings)
+        if not settings.get("enabled") or read_backend != "api":
             continue
         path, snapshot = refresher(config, start, end, request_json, resolver)
         item_key = "issues" if name == "linear" else "events"

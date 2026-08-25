@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -9,21 +10,57 @@ from skill_paths import configure_paths
 
 configure_paths()
 
-from run_weekly import collect_run, finalize_run, weekly_report_name
+from run_weekly import (
+    _collected_reference_keys,
+    _reference_key,
+    collect_run,
+    finalize_run,
+    weekly_report_name,
+)
 from scripts.ledger_common import load_config
 
 
-def git(repo: Path, *args: str) -> None:
+def git(repo: Path, *args: str, env: dict[str, str] | None = None) -> None:
     subprocess.run(
         ["git", "-C", str(repo), *args],
         check=True,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env={**os.environ, **(env or {})},
     )
 
 
 class WeeklyRunTests(unittest.TestCase):
+    def test_interaction_reference_uses_configured_source_name(self) -> None:
+        evidence = {
+            "git": {},
+            "interactions": {
+                "events": [
+                    {
+                        "source": "codex",
+                        "source_name": "scheduled-exports",
+                        "event_id": "event-1",
+                    }
+                ]
+            },
+            "connectors": {"snapshots": {}},
+        }
+        available = _collected_reference_keys(evidence)
+        configured_source_ref = {
+            "event_type": "interaction",
+            "source": "scheduled-exports",
+            "event_id": "event-1",
+        }
+        provider_ref = {
+            "event_type": "interaction",
+            "source": "codex",
+            "event_id": "event-1",
+        }
+
+        self.assertIn(_reference_key(configured_source_ref), available)
+        self.assertNotIn(_reference_key(provider_ref), available)
+
     def test_collect_and_finalize(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -34,7 +71,16 @@ class WeeklyRunTests(unittest.TestCase):
             git(repo, "config", "user.email", "owner@example.com")
             (repo / "note.md").write_text("evidence\n", encoding="utf-8")
             git(repo, "add", ".")
-            git(repo, "commit", "-m", "evidence")
+            git(
+                repo,
+                "commit",
+                "-m",
+                "evidence",
+                env={
+                    "GIT_AUTHOR_DATE": "2026-08-19T12:00:00+08:00",
+                    "GIT_COMMITTER_DATE": "2026-08-19T12:00:00+08:00",
+                },
+            )
             config_path = root / "ledger.toml"
             config_path.write_text(
                 "\n".join(

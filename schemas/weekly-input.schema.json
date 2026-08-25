@@ -20,8 +20,8 @@
     "profile_id": { "type": "string", "minLength": 1 },
     "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
     "period": { "$ref": "#/$defs/period" },
-    "target_focus_hours": { "type": "number", "minimum": 0 },
-    "actual_focus_hours": { "type": "number", "minimum": 0 },
+    "target_focus_hours": { "type": ["number", "null"], "minimum": 0 },
+    "actual_focus_hours": { "type": ["number", "null"], "minimum": 0 },
     "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } },
     "themes": {
       "type": "array",

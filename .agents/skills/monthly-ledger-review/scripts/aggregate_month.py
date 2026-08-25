@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 from collections import Counter, defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,14 +18,22 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.ledger_common import write_json
 
 
+def _month_period(month: str) -> tuple[date, date]:
+    start = date.fromisoformat(f"{month}-01")
+    end = date(start.year + (start.month == 12), (start.month % 12) + 1, 1)
+    return start, end
+
+
 def aggregate(records: list[dict[str, Any]], month: str) -> dict[str, Any]:
     # Inputs are ordered oldest to newest; a rerun replaces the earlier record
     # for the same ISO week without deleting the immutable private artifacts.
+    month_start, month_end = _month_period(month)
     latest_by_week: dict[str, dict[str, Any]] = {}
     for record in records:
-        if str(record.get("period", {}).get("start", "")).startswith(month) or str(
-            record.get("period", {}).get("end", "")
-        ).startswith(month):
+        period = record.get("period", {})
+        period_start = date.fromisoformat(str(period.get("start", "")))
+        period_end = date.fromisoformat(str(period.get("end", "")))
+        if period_start < month_end and period_end > month_start:
             latest_by_week[str(record.get("week", "unknown"))] = record
     selected = list(latest_by_week.values())
     components: dict[str, list[float]] = defaultdict(list)

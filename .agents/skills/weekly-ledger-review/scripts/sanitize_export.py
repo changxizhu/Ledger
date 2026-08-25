@@ -10,6 +10,8 @@ def sanitize_week(
     data: dict[str, Any], include_public_names: bool = False
 ) -> dict[str, Any]:
     index = data["weekly_index"]
+    plan_status = str(data.get("plan_status", {}).get("status", "available"))
+    plan_available = plan_status in {"available", "complete", "ready"}
     themes = []
     for number, theme in enumerate(data.get("themes", []), start=1):
         themes.append(
@@ -27,10 +29,17 @@ def sanitize_week(
         "week": data["week"],
         "score": index["score"],
         "components": index["components"],
-        "completed_task_count": sum(
-            1 for task in data.get("tasks", []) if task.get("completed")
+        "component_status": index.get("component_status", {}),
+        "score_coverage": index.get("score_coverage", 100.0),
+        "task_status": "available" if plan_available else "unavailable",
+        "completed_task_count": (
+            sum(1 for task in data.get("tasks", []) if task.get("completed"))
+            if plan_available
+            else None
         ),
-        "planned_task_count": len(data.get("tasks", [])),
+        "planned_task_count": (
+            len(data.get("tasks", [])) if plan_available else None
+        ),
         "theme_count": len(themes),
         "themes": themes,
     }

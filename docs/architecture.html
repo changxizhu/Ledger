@@ -1211,6 +1211,9 @@
             <strong>Linear</strong><span>计划与进度的权威来源</span>
           </div>
           <div class="summary-item">
+            <strong>Google Tasks</strong><span>Linear 任务的日常执行镜像</span>
+          </div>
+          <div class="summary-item">
             <strong>Google Calendar</strong><span>会议与专注时间的事实来源</span>
           </div>
           <div class="summary-item">
@@ -1234,10 +1237,19 @@
                   class="component component-source"
                   data-title="Linear"
                   data-kicker="计划唯一来源"
-                  data-detail="Initiatives 表示长期目标，Projects 表示工作主题，Issues 表示任务，1 周 Cycle 表示每周承诺。Ledger 读取完成状态并在确认后回写下一周期。"
+                  data-detail="当前确定性快照读取 Issues 和 1 周 Cycle，作为任务与每周承诺。Initiatives 和 Projects 可由主协调器单独复盘，但不会自动进入快照。用户确认后，主协调器可回写下一周期。"
                 >
                   <span class="status"></span><strong>Linear</strong
-                  ><small>长期目标 · 工作主题 · 周计划</small>
+                  ><small>Issues · weekly Cycle · separately reviewed goals</small>
+                </button>
+                <button
+                  class="component component-source"
+                  data-title="Google Tasks"
+                  data-kicker="日常执行清单"
+                  data-detail="只接收分配给当前用户的 Linear issues。同步是 Linear 到 Google Tasks 的单向镜像，使用稳定 Linear ID 更新或完成已有任务，不把 Tasks 状态回写 Linear。"
+                >
+                  <span class="status"></span><strong>Google Tasks</strong
+                  ><small>Assigned issues · one-way mirror</small>
                 </button>
                 <button
                   class="component component-source"
@@ -1266,16 +1278,6 @@
                   <span class="status"></span><strong>Model interactions</strong
                   ><small>Codex · Claude · scheduled export</small>
                 </button>
-                <button
-                  class="component component-future"
-                  data-title="Todoist"
-                  data-kicker="可选提醒层"
-                  data-detail="仅用于简单个人提醒，不承载 Ledger 的周计划，不与 Linear 重复同步，也不参与核心工作指数。"
-                  data-status="optional"
-                >
-                  <span class="status"></span><strong>Todoist</strong
-                  ><small>可选个人提醒，不是计划主库</small>
-                </button>
               </div>
             </section>
 
@@ -1290,20 +1292,20 @@
                   class="component component-access"
                   data-title="MCP connectors"
                   data-kicker="实时授权工具"
-                  data-detail="Linear 和 Calendar 通过已授权连接器读取或执行操作。凭据留在连接器授权层，不写入 Ledger 仓库。"
+                  data-detail="Linear 和 Calendar 可通过已授权连接器读取。当前实现不声明 MCP 写入能力；外部回写只走受控 API，缺少 API 配置时必须阻塞，不能转用浏览器。"
                 >
                   <span class="status"></span><strong>MCP connectors</strong
-                  ><small>Linear · Calendar · optional Todoist</small>
+                  ><small>Linear · Calendar</small>
                 </button>
                 <button
                   class="component component-access"
-                  data-title="Direct read adapters"
-                  data-kicker="无人值守读取"
-                  data-detail="项目级 scripts/credentials.py 只解析 env: 或 macOS keychain: 引用；weekly skill 的 scripts/refresh_connectors.py 核验 expected_user 后读取 Linear/Calendar，并只保存最小化私有快照。"
+                  data-title="Verified API adapters"
+                  data-kicker="无人值守读写"
+                  data-detail="scripts/credentials.py 解析本地凭据；refresh_connectors.py 负责账号核验与读取，apply_connectors.py 负责获批写入，sync_google_tasks.py 负责 Linear 到 Google Tasks 的幂等镜像和写后核验。"
                 >
                   <span class="status"></span
-                  ><strong>Direct read adapters</strong
-                  ><small>Account check · Read-only snapshots</small>
+                  ><strong>Verified API adapters</strong
+                  ><small>Account check · Apply · Verify</small>
                 </button>
                 <button
                   class="component component-access"
@@ -1406,10 +1408,10 @@
                   class="component component-output"
                   data-title="Approved updates"
                   data-kicker="需要确认的写入"
-                  data-detail="weekly skill 的 scripts/build_proposals.py 预览 Linear 下周任务和一个周一 Calendar 复盘提醒。只有用户确认后，主协调器才通过 MCP 执行写入。"
+                  data-detail="build_proposals.py 预览 Linear 下周任务和周一 Calendar 提醒；获批后通过 API 写入。随后 sync_google_tasks.py 先预览、再把已分配的 Linear issues 单向同步到 Google Tasks。"
                 >
                   <span class="status"></span><strong>Approved updates</strong
-                  ><small>Linear next plan · Monday reminder</small>
+                  ><small>Linear plan · Tasks mirror · Monday reminder</small>
                 </button>
                 <button
                   class="component component-output"
@@ -1493,13 +1495,13 @@
             <div class="step-body">
               <strong>保存外部快照</strong
               ><span
-                >MCP 模式由主协调器读取；direct 模式由
+                >MCP 模式由主协调器读取；API 模式由
                 <code>refresh_connectors.py</code>
                 核验账号后读取。两者把相同格式的周快照写到
                 <code>.ledger/inbox/</code>。</span
               >
             </div>
-            <div class="step-owner">Main or direct reader</div>
+            <div class="step-owner">Main or API reader</div>
           </div>
           <div class="timeline-step">
             <div class="step-number">04</div>
@@ -1586,7 +1588,9 @@
             <div class="step-body">
               <strong>受控回写与月度汇总</strong
               ><span
-                >主协调器只执行获批写入；<code>aggregate_month.py</code>
+                ><code>run_weekly.py apply --approved</code> 只通过核验过的 API
+                执行获批写入，并保存 <code>connector-application.json</code>；随后
+                <code>run_weekly.py sync-tasks</code> 预览并同步 Google Tasks；<code>aggregate_month.py</code>
                 后续把每周最新 scored record 汇总到
                 <code>.ledger/months/</code>。</span
               >
@@ -1638,8 +1642,8 @@
                   一个
                   <code>person_id</code>
                   关联多个账号；每个人使用独立配置和私有目录。校验 auth
-                  mode，只允许 <code>env:</code> /
-                  <code>keychain:</code> 凭据引用。
+                  mode；凭据默认使用 <code>env:</code> / <code>keychain:</code>
+                  引用，也可在 ignored 配置中显式启用 inline 值。
                 </td>
                 <td>
                   本机设置 → validated profile<br /><span class="state-label"
@@ -1736,7 +1740,7 @@
                   >
                 </td>
                 <td>
-                  Direct reader 核验服务账号并生成快照；统一 collector
+                  API reader 核验服务账号并生成快照；统一 collector
                   再验证来源、profile、周区间和采集时间。密钥不会进入快照。
                 </td>
                 <td>
@@ -1747,7 +1751,7 @@
                 </td>
               </tr>
               <tr>
-                <td>MCP 读取与回写</td>
+                <td>MCP 读取</td>
                 <td>
                   <code>.codex/config.toml</code><br /><code
                     >.agents/skills/weekly-ledger-review/SKILL.md</code
@@ -1755,12 +1759,48 @@
                 </td>
                 <td>
                   当前 Codex 主会话调用已授权的 Linear/Calendar
-                  connectors，保存快照；展示提案后，只执行用户批准的写入。
+                  connectors 保存快照。写工具不存在时明确阻塞，不切换浏览器。
                 </td>
                 <td>
-                  MCP response ↔ external services<br /><span
+                  MCP response → private snapshots<br /><span
                     class="state-label manual"
                     >主会话执行</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>受控 API 回写</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/apply_connectors.py</code
+                  ><br /><code>run_weekly.py apply</code>
+                </td>
+                <td>
+                  在所有服务完成预检后，按稳定 Ledger key 创建或更新 Linear issue
+                  与唯一 Calendar 提醒；重新读取每个结果并保存私有执行记录。账号不符、重复提醒、过期提醒或缺少能力时停止。
+                </td>
+                <td>
+                  Approved proposals → API writes → verified results<br /><span
+                    class="state-label"
+                    >已实现</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>Linear → Google Tasks</td>
+                <td>
+                  <code
+                    >.agents/skills/weekly-ledger-review/scripts/sync_google_tasks.py</code
+                  ><br /><code>run_weekly.py sync-tasks</code>
+                </td>
+                <td>
+                  读取本周分配给当前用户的 Linear issues，在独立的 Google Tasks
+                  列表中按稳定 Linear ID 创建、更新或完成任务。默认只预览；写入后逐项重新读取。重复 marker、账号不符或 API 能力缺失时停止。
+                </td>
+                <td>
+                  Linear assigned issues → preview → verified Tasks<br /><span
+                    class="state-label"
+                    >已实现</span
                   >
                 </td>
               </tr>
@@ -1845,8 +1885,8 @@
                   >
                 </td>
                 <td>
-                  合并下周计划与未完成任务，去重并排除取消项；只准备一个周一
-                  Calendar review reminder，不直接写外部服务。
+                  合并下周计划与未完成任务，去重并排除取消项；为每项任务和唯一周一
+                  Calendar review reminder 生成稳定 Ledger key，不直接写外部服务。
                 </td>
                 <td>
                   Scored record → <code>proposals.json</code><br /><span
@@ -1947,10 +1987,10 @@
               </tr>
               <tr>
                 <td>外部快照</td>
-                <td>MCP 主协调器，或 direct reader + 外部凭据引用</td>
+                <td>MCP 主协调器，或 API reader + 本地凭据</td>
                 <td>
                   先核验账号，再保存为 <code>.ledger/inbox/linear.json</code> 和
-                  <code>google-calendar.json</code>；凭据不进入文件。
+                  <code>google-calendar.json</code>；凭据不进入快照或报告。
                 </td>
               </tr>
               <tr>
@@ -2036,7 +2076,11 @@
 │       ├── weekly-input.json
 │       ├── weekly-scored.json
 │       ├── proposals.json
+│       ├── connector-application.json
 │       └── public-week.json
+├── sync/google-tasks/
+│   ├── YYYY-Www.preview.json
+│   └── YYYY-Www.json
 └── months/YYYY-MM.json</code></pre>
           </div>
         </div>
@@ -2061,10 +2105,9 @@
         <div class="privacy-band">
           <h3>运行边界</h3>
           <p>
-            Python 已实现本地同步、采集、direct
-            只读刷新、账号核验、评分和文件输出。MCP
-            读取、用户确认和所有外部回写由 Codex 主会话完成。Subagents 不能访问
-            connectors、凭据或修改文件。
+            Python 已实现本地同步、采集、API 读取、账号核验、评分、提案、获批 API
+            回写与写后核验。MCP 只使用当前实际可用的工具；缺少写能力时停止。
+            自动化永不回退到浏览器。Subagents 不能访问 connectors、凭据或修改文件。
           </p>
         </div>
       </section>
@@ -2104,13 +2147,14 @@
                 <li>非秘密的 Linear user ID 与 Calendar ID</li>
                 <li>仓库路径白名单、快照路径和 expected account</li>
                 <li><code>env:</code> 或 <code>keychain:</code> 凭据引用</li>
+                <li>显式 opt-in 后，ignored <code>ledger.toml</code> 中的 API 凭据</li>
               </ul>
             </div>
             <div class="doc-column">
               <h4>不能进入 Ledger</h4>
               <ul class="doc-list">
-                <li>OAuth access token 或 refresh token 的原始值</li>
-                <li>API key、密码、cookie 或 session 文件</li>
+                <li>任何 run artifact、报告或公开导出中的原始凭据</li>
+                <li>密码、cookie 或 session 文件</li>
                 <li>从 Linear、Google、GitHub、Codex 或 Claude 复制的凭据</li>
                 <li>公开仓库中的原始对话、笔记正文或机器路径</li>
               </ul>
@@ -2121,14 +2165,15 @@
         <section class="doc-section">
           <div class="doc-section-heading">
             <h3>连接模式</h3>
-            <p>MCP 适合交互式运行；direct 适合无人值守读取。两者生成同一种周快照，后续脚本和子代理不接触服务凭据。</p>
+            <p>读取和写入后端独立配置。MCP 适合交互式读取；API 适合无人值守读取与获批写入。后续脚本和子代理不接触服务凭据。</p>
           </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>模式</th><th>凭据位置</th><th>账号核验</th><th>允许的行为</th></tr></thead>
               <tbody>
-                <tr><td>MCP</td><td>Codex connector store</td><td>建议配置 <code>expected_user</code>，快照包含 account</td><td>主协调器读取；用户批准后可写入</td></tr>
-                <tr><td>Direct</td><td>环境变量或 macOS Keychain</td><td><code>expected_user</code> 必填，不匹配则停止</td><td>只读 API，并保存最小化私有快照</td></tr>
+                <tr><td>MCP read</td><td>Codex connector store</td><td>建议配置 <code>expected_user</code>，快照包含 account</td><td>只使用当前实际暴露的读取工具</td></tr>
+                <tr><td>API read/write</td><td>ignored TOML、环境变量或 macOS Keychain</td><td><code>expected_user</code> 必填，不匹配则停止</td><td>读取快照；批准后幂等写入并重新核验</td></tr>
+                <tr><td>Browser</td><td>不适用</td><td>不适用</td><td>自动化禁止使用；缺少已配置的 API 写入能力时报告 blocked</td></tr>
                 <tr><td>Git</td><td>系统 credential manager 或 SSH agent</td><td>通过 author aliases 归一身份</td><td>fetch；只可安全 fast-forward，不自动 push</td></tr>
                 <tr><td>Interactions</td><td>本机 transcript + 私有 Google Drive</td><td>每台设备使用唯一 device_id</td><td>脱敏增量导出；不上传原始配置目录</td></tr>
               </tbody>
@@ -2154,13 +2199,13 @@
               </tr>
               <tr>
                 <td>工作主题</td>
-                <td>Linear Projects</td>
-                <td>关联证据并总结项目进度。</td>
+                <td>周报主题分析</td>
+                <td>根据已确认的证据归纳；当前不会自动读取 Linear Projects。</td>
               </tr>
               <tr>
                 <td>长期目标</td>
-                <td>Linear Initiatives / Projects</td>
-                <td>每月评估方向、风险和下阶段里程碑。</td>
+                <td>主协调器单独确认的 Linear 目标</td>
+                <td>可用于月度评估；当前确定性快照不会自动读取 Initiatives 或 Projects。</td>
               </tr>
               <tr>
                 <td>真实时间</td>
@@ -2203,8 +2248,8 @@
             <thead><tr><th>组件</th><th>读取</th><th>写入</th></tr></thead>
             <tbody>
               <tr><td>Main coordinator</td><td>配置来源和私有 run 文件</td><td>私有 runs；经批准的外部变更</td></tr>
-              <tr><td>MCP connector</td><td>已授权的 Linear / Calendar 账号</td><td>只由主协调器执行获批操作</td></tr>
-              <tr><td>Direct reader</td><td>外部凭据引用与只读 API</td><td>核验过的私有快照</td></tr>
+              <tr><td>MCP connector</td><td>已授权的 Linear / Calendar 账号</td><td>当前仅用于读取；禁止浏览器替代</td></tr>
+              <tr><td>API adapter</td><td>本地 inline 值或外部凭据引用与服务 API</td><td>私有快照；获批提案；写后核验记录</td></tr>
               <tr><td>Evidence collector</td><td>单个 run 的 evidence；禁用 apps/MCP</td><td>无</td></tr>
               <tr><td>Theme analyst</td><td>标准化 evidence；禁用 apps/MCP</td><td>无</td></tr>
               <tr><td>Review auditor</td><td>run artifacts；禁用 apps/MCP</td><td>无</td></tr>
@@ -2220,33 +2265,49 @@
             <p>新电脑沿用同一个 <code>person_id</code>，但保存自己的 ignored <code>ledger.toml</code>、仓库路径和设备导出路径。共享电脑应为每个人使用不同配置与 <code>private_data_dir</code>。</p>
           </div>
           <div class="code-block">
-            <div class="code-toolbar"><span>Direct-mode connector example</span><button class="copy-button" type="button">Copy</button></div>
-            <pre><code>[integrations.linear]
+            <div class="code-toolbar"><span>Separate read/write connector example</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>[security]
+allow_inline_credentials = true
+
+[integrations.linear]
 enabled = true
-auth_mode = "direct"
+read_backend = "mcp"
+write_backend = "api"
+allow_browser_fallback = false
 team = "Ledger"
 snapshot = ".ledger/inbox/linear.json"
 expected_user = "owner@example.com"
-credential_ref = "keychain:ledger-linear/owner"
+api_key = "..."
 
 [integrations.google_calendar]
 enabled = true
-auth_mode = "direct"
+read_backend = "mcp"
+write_backend = "api"
+allow_browser_fallback = false
 calendar = "primary"
 snapshot = ".ledger/inbox/google-calendar.json"
 expected_user = "owner@example.com"
-client_id_ref = "env:LEDGER_GOOGLE_CLIENT_ID"
-client_credential_ref = "env:LEDGER_GOOGLE_CLIENT_CREDENTIAL"
-refresh_credential_ref = "keychain:ledger-google-refresh/owner"
-focus_title_prefixes = ["Focus:", "Deep Work"]</code></pre>
+client_id = "..."
+client_secret = "..."
+refresh_token = "..."
+focus_title_prefixes = ["Focus:", "Deep Work"]
+
+[integrations.google_tasks]
+enabled = true
+read_backend = "api"
+write_backend = "api"
+allow_browser_fallback = false
+credentials_from = "google_calendar"
+source = "linear"
+tasklist = "Linear"</code></pre>
           </div>
         </section>
 
         <div class="privacy-band">
           <h3>核心隐私规则</h3>
           <p>
-            原始证据止于 <code>.ledger/</code>。MCP 凭据止于 Codex；direct
-            凭据止于环境变量或 macOS Keychain。Subagents
+            原始证据止于 <code>.ledger/</code>。MCP 凭据止于 Codex；API
+            凭据止于 ignored <code>ledger.toml</code>、环境变量或 macOS Keychain。Subagents
             只读。公开导出必须是独立、显式且经过验证的动作。
           </p>
         </div>
@@ -2269,7 +2330,7 @@ focus_title_prefixes = ["Focus:", "Deep Work"]</code></pre>
         <div class="summary-strip" aria-label="配置原则">
           <div class="summary-item"><strong>Machine-local</strong><span>路径可以因电脑而不同</span></div>
           <div class="summary-item"><strong>One identity</strong><span>同一人沿用相同 person_id</span></div>
-          <div class="summary-item"><strong>No raw secrets</strong><span>只保存外部凭据引用</span></div>
+          <div class="summary-item"><strong>Explicit secrets</strong><span>inline 凭据必须显式启用</span></div>
           <div class="summary-item"><strong>Git ignored</strong><span>ledger.toml 不进入仓库</span></div>
         </div>
 
@@ -2328,6 +2389,9 @@ providers = ["codex", "claude_code"]
 lookback_days = 8
 include_content = true
 
+[security]
+allow_inline_credentials = false
+
 [weekly_index]
 plan_weight = 0.30
 progress_weight = 0.45
@@ -2336,26 +2400,39 @@ evidence_weight = 0.10
 
 [integrations.linear]
 enabled = false
-auth_mode = "mcp"
+read_backend = "mcp"
+write_backend = "disabled"
+allow_browser_fallback = false
 team = "Ledger"
 snapshot = ".ledger/inbox/linear.json"
 # expected_user = "your-linear-email@example.com"
+# api_key = "..."
 # credential_ref = "keychain:ledger-linear/your-profile"
-
-[integrations.todoist]
-enabled = false
-project = "Personal Reminders"
 
 [integrations.google_calendar]
 enabled = false
-auth_mode = "mcp"
+read_backend = "mcp"
+write_backend = "disabled"
+allow_browser_fallback = false
 calendar = "primary"
 snapshot = ".ledger/inbox/google-calendar.json"
 focus_title_prefixes = []
 # expected_user = "your-google-email@example.com"
+# client_id = "..."
+# client_secret = "..."
+# refresh_token = "..."
 # client_id_ref = "env:LEDGER_GOOGLE_CLIENT_ID"
 # client_credential_ref = "env:LEDGER_GOOGLE_CLIENT_CREDENTIAL"
 # refresh_credential_ref = "keychain:ledger-google-refresh/your-profile"
+
+[integrations.google_tasks]
+enabled = false
+read_backend = "api"
+write_backend = "disabled"
+allow_browser_fallback = false
+credentials_from = "google_calendar"
+source = "linear"
+tasklist = "Linear"
 
 [integrations.interactions]
 enabled = true
@@ -2376,7 +2453,8 @@ include_theme_names = false</code></pre>
             <div class="definition-row"><dt><code>[[interaction_sources]]</code></dt><dd>主电脑读取 Google Drive 中的标准 Ledger JSONL；路径可以递归匹配多台设备。</dd></div>
             <div class="definition-row"><dt><code>[interaction_export]</code></dt><dd>当前设备的唯一 device_id、本地 Drive 根目录、增量游标和来源选择。</dd></div>
             <div class="definition-row"><dt><code>[weekly_index]</code></dt><dd>四项权重必须非负且合计为 1。</dd></div>
-            <div class="definition-row"><dt><code>[integrations.*]</code></dt><dd>启用状态、MCP/direct 模式、快照路径和非秘密凭据引用。</dd></div>
+            <div class="definition-row"><dt><code>[security]</code></dt><dd>控制是否允许在 ignored <code>ledger.toml</code> 中直接保存 API 凭据。</dd></div>
+            <div class="definition-row"><dt><code>[integrations.*]</code></dt><dd>启用状态、独立的 read/write backend、强制关闭的浏览器 fallback、快照路径，以及 inline 凭据或外部引用。Google Tasks 通过 <code>credentials_from = "google_calendar"</code> 复用同一组已核验 OAuth 凭据。</dd></div>
             <div class="definition-row"><dt><code>[public_export]</code></dt><dd>控制匿名摘要是否保留私有主题名；默认不保留。</dd></div>
           </dl>
         </section>
@@ -2524,10 +2602,10 @@ python3 -m unittest discover -s tests -v</code></pre>
   --config ledger.toml --week YYYY-Www --fetch</code></pre></div>
             </div>
             <div class="doc-column">
-              <h4>Direct 模式</h4>
-              <p>只读 adapter 在运行时解析外部凭据引用、核验 expected_user，并保存与 MCP 相同格式的快照。</p>
+              <h4>API 读取模式</h4>
+              <p>API adapter 在运行时解析本地 inline 值或外部凭据引用、核验 expected_user，并保存与 MCP 相同格式的快照。</p>
               <div class="code-block"><div class="code-toolbar"><span>Refresh and collect</span><button class="copy-button" type="button">Copy</button></div><pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py collect \
-  --config ledger.toml --week YYYY-Www --fetch --refresh-direct</code></pre></div>
+  --config ledger.toml --week YYYY-Www --fetch --refresh-api</code></pre></div>
             </div>
           </div>
           <div class="notice" style="margin-top: 16px">
@@ -2538,6 +2616,27 @@ python3 -m unittest discover -s tests -v</code></pre>
             <div class="code-toolbar"><span>Finalize after reviewed weekly-input.json exists</span><button class="copy-button" type="button">Copy</button></div>
             <pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py finalize \
   --config ledger.toml --run-dir RUN</code></pre>
+          </div>
+          <div class="notice warning" style="margin-top: 14px">
+            <strong>Approval gate</strong>
+            Finalize 只生成 <code>proposals.json</code>。用户确认其完整内容后，且两个服务的 <code>write_backend = "api"</code>、凭据和账号均通过预检，才能执行下列命令。任何缺失能力都报告 blocked；不会打开浏览器。
+          </div>
+          <div class="code-block" style="margin-top: 14px">
+            <div class="code-toolbar"><span>Apply and verify approved proposals</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py apply \
+  --config ledger.toml --run-dir RUN --approved</code></pre>
+          </div>
+          <div class="code-block" style="margin-top: 14px">
+            <div class="code-toolbar"><span>Preview and apply Linear to Google Tasks</span><button class="copy-button" type="button">Copy</button></div>
+            <pre><code>python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py sync-tasks \
+  --config ledger.toml --week YYYY-Www
+
+python3 .agents/skills/weekly-ledger-review/scripts/run_weekly.py sync-tasks \
+  --config ledger.toml --week YYYY-Www --apply</code></pre>
+          </div>
+          <div class="notice" style="margin-top: 14px">
+            <strong>职责边界</strong>
+            Linear 保存计划和进度的权威状态；Google Tasks 是便于日常勾选的单向执行镜像；Google Calendar 只保存复盘提醒和时间块。当前不会把 Google Tasks 的完成状态回写 Linear。
           </div>
           <p style="color: var(--muted); font-size: 12px; margin: 12px 0 0">一次运行的原始证据和中间结果保存在 <code>.ledger/runs/YYYY-Www/TIMESTAMP/</code>；最终可读报告保存在同一周目录下的 <code>YYYY-MM-week-N.html</code>。</p>
         </section>
@@ -2570,6 +2669,7 @@ python3 -m unittest discover -s tests -v</code></pre>
                 <tr><td>ahead</td><td>本地有未推送提交</td><td>用户决定是否 push</td></tr>
                 <tr><td>diverged</td><td>本地与远端历史分叉</td><td>停止自动同步，用户处理</td></tr>
                 <tr><td>source unavailable</td><td>快照、互动或仓库不可读</td><td>报告 unknown；必需来源会阻止严格定稿</td></tr>
+                <tr><td>connector blocked</td><td>写后端禁用、凭据缺失、账号不符、重复提醒或提醒已过期</td><td>两个服务均不写入；修复后幂等重试，禁止浏览器 fallback</td></tr>
               </tbody>
             </table>
           </div>

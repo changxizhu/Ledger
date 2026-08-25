@@ -8,6 +8,6 @@ default_tools_approval_mode = "writes"
 destructive_enabled = false
 open_world_enabled = false
 
-# Linear and Google Calendar are the primary app connectors. Todoist is optional
-# for simple personal reminders. Configure and authenticate connectors in
-# Codex/ChatGPT settings instead of committing credentials here.
+# Linear and Google Calendar are the primary app connectors. Configure and
+# authenticate connectors in Codex/ChatGPT settings instead of committing
+# credentials here.
